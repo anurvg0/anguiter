@@ -1,0 +1,2746 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+<title>AnGuiter — Every Chord Ever Played.</title>
+
+<!-- ── PWA META ── -->
+<meta name="theme-color" content="#1A1108"/>
+<meta name="mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="apple-mobile-web-app-title" content="AnGuiter"/>
+<meta name="application-name" content="AnGuiter"/>
+<meta name="description" content="The complete guitar chord encyclopedia. Every chord, every voicing, every key."/>
+
+<!-- ── MANIFEST & ICONS (inlined for single-file deploy) ── -->
+<link rel="icon" type="image/jpeg" href="assets/logo.jpg"/>
+<link rel="apple-touch-icon" href="assets/logo.jpg"/>
+<script>
+(function(){
+  /* ── Inline manifest injected as blob URL ── */
+  const manifest = {
+    name: "AnGuiter \u2014 Every Chord Ever Played",
+    short_name: "AnGuiter",
+    description: "The complete guitar chord encyclopedia. Every chord, every voicing, every key.",
+    start_url: "./",
+    scope: "./",
+    display: "standalone",
+    orientation: "portrait-primary",
+    background_color: "#1A1108",
+    theme_color: "#1A1108",
+    lang: "en",
+    categories: ["music","education","utilities"],
+    icons: [
+      { src: "assets/logo.jpg", sizes: "192x192", type: "image/jpeg", purpose: "any maskable" },
+      { src: "assets/logo.jpg", sizes: "512x512", type: "image/jpeg", purpose: "any maskable" }
+    ]
+  };
+  const blob = new Blob([JSON.stringify(manifest)], {type:'application/manifest+json'});
+  const url  = URL.createObjectURL(blob);
+  const link = document.createElement('link');
+  link.rel   = 'manifest';
+  link.href  = url;
+  document.head.appendChild(link);
+
+  /* ── Inline service worker injected as blob URL ── */
+  const swCode = `
+const CACHE_NAME = 'anguiter-v1';
+const STATIC = ['./','./index.html','assets/logo.jpg'];
+
+self.addEventListener('install', e => {
+  e.waitUntil(
+    caches.open(CACHE_NAME).then(c =>
+      Promise.allSettled(STATIC.map(u => c.add(u).catch(()=>{})))
+    ).then(() => self.skipWaiting())
+  );
+});
+
+self.addEventListener('activate', e => {
+  e.waitUntil(
+    caches.keys().then(keys =>
+      Promise.all(keys.filter(k => k !== CACHE_NAME).map(k => caches.delete(k)))
+    ).then(() => self.clients.claim())
+  );
+});
+
+self.addEventListener('fetch', e => {
+  const req = e.request;
+  if(req.method !== 'GET') return;
+  const url = new URL(req.url);
+  if(url.protocol === 'chrome-extension:' || url.protocol === 'blob:') return;
+  const isSameOrigin = url.origin === location.origin;
+  const isCdn = url.hostname.includes('fonts.g') || url.hostname.includes('tailwindcss') || url.hostname.includes('googleapis');
+  if(isSameOrigin || isCdn){
+    e.respondWith(
+      caches.match(req).then(cached => {
+        if(cached) return cached;
+        return fetch(req).then(res => {
+          if(!res || res.status !== 200) return res;
+          const clone = res.clone();
+          caches.open(CACHE_NAME).then(c => c.put(req, clone));
+          return res;
+        }).catch(() => {
+          if(req.headers.get('accept') && req.headers.get('accept').includes('text/html'))
+            return caches.match('./index.html');
+        });
+      })
+    );
+  }
+});
+`;
+  if('serviceWorker' in navigator){
+    const swBlob = new Blob([swCode], {type:'text/javascript'});
+    const swUrl  = URL.createObjectURL(swBlob);
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register(swUrl).catch(()=>{});
+    });
+  }
+})();
+</script>
+
+<!-- ── FONTS ── -->
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;0,900;1,400;1,700&family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&family=Crimson+Text:ital,wght@0,400;0,600;1,400&family=Old+Standard+TT:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  /* ─── CSS VARIABLES ─── */
+  :root {
+    --amber:    #C8860A;
+    --amber-lt: #E4A832;
+    --amber-dk: #8B5E0A;
+    --cream:    #F2EAD8;
+    --parchment:#E8D9BB;
+    --brown:    #3D2B1F;
+    --brown-md: #5C3D2E;
+    --brown-lt: #8B6651;
+    --wood:     #6B3F1F;
+    --black:    #1A1108;
+    --ink:      #221810;
+    --charcoal: #2C2118;
+    --gold:     #B8960C;
+    --gold-lt:  #D4AF37;
+    --sepia:    #7B5C3A;
+    --paper:    #F5EDD8;
+  }
+
+  /* ─── RESET & BASE ─── */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+  body {
+    background-color: var(--black);
+    color: var(--cream);
+    font-family: 'Cormorant Garamond', Georgia, serif;
+    font-size: 16px;
+    line-height: 1.6;
+    overflow-x: hidden;
+    cursor: default;
+  }
+
+  /* ─── FILM GRAIN OVERLAY ─── */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    pointer-events: none;
+    opacity: 0.045;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23g)'/%3E%3C/svg%3E");
+    background-repeat: repeat;
+    background-size: 180px 180px;
+  }
+
+  /* ─── SCROLLBAR ─── */
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: var(--black); }
+  ::-webkit-scrollbar-thumb { background: var(--amber-dk); border-radius: 3px; }
+
+  /* ─── TYPOGRAPHY ─── */
+  .font-display  { font-family: 'Playfair Display', Georgia, serif; }
+  .font-serif    { font-family: 'Cormorant Garamond', Georgia, serif; }
+  .font-body     { font-family: 'Crimson Text', Georgia, serif; }
+  .font-old      { font-family: 'Old Standard TT', Georgia, serif; }
+
+  /* ─── HERO ─── */
+  #hero {
+    position: relative;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    background: radial-gradient(ellipse 80% 80% at 50% 40%, #2a1a08 0%, #130d04 50%, #070401 100%);
+  }
+  .hero-bg-rings {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+  }
+  .hero-ring {
+    position: absolute;
+    border-radius: 50%;
+    border: 1px solid rgba(200,134,10,0.08);
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    animation: ringPulse 8s ease-in-out infinite;
+  }
+  @keyframes ringPulse {
+    0%, 100% { opacity: 0.08; transform: translate(-50%,-50%) scale(1); }
+    50%       { opacity: 0.18; transform: translate(-50%,-50%) scale(1.02); }
+  }
+  .hero-grain {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      rgba(0,0,0,0.03) 2px,
+      rgba(0,0,0,0.03) 4px
+    );
+  }
+  .hero-vignette {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background: radial-gradient(ellipse 90% 90% at 50% 50%, transparent 40%, rgba(0,0,0,0.85) 100%);
+  }
+  .hero-divider {
+    width: 180px;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--gold), transparent);
+    margin: 1.5rem auto;
+  }
+  .hero-tagline {
+    font-family: 'Playfair Display', serif;
+    font-style: italic;
+    font-size: clamp(2.8rem, 8vw, 6.5rem);
+    font-weight: 700;
+    color: var(--cream);
+    text-shadow: 0 2px 40px rgba(200,134,10,0.3), 0 0 80px rgba(200,134,10,0.1);
+    letter-spacing: -0.01em;
+    line-height: 1.1;
+  }
+  .hero-sub {
+    font-family: 'Old Standard TT', serif;
+    font-size: clamp(0.85rem, 2vw, 1.1rem);
+    color: var(--amber-lt);
+    letter-spacing: 0.35em;
+    text-transform: uppercase;
+  }
+  .hero-desc {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: clamp(1rem, 2.5vw, 1.3rem);
+    color: rgba(242,234,216,0.65);
+    max-width: 520px;
+    text-align: center;
+    font-style: italic;
+    margin-top: 1rem;
+  }
+  .amber-badge {
+    display: inline-block;
+    border: 1px solid var(--amber-dk);
+    color: var(--amber-lt);
+    font-family: 'Old Standard TT', serif;
+    font-size: 0.7rem;
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    padding: 0.35rem 1.2rem;
+    border-radius: 0;
+    background: rgba(200,134,10,0.06);
+  }
+
+  /* ─── SEARCH ─── */
+  .search-wrap {
+    position: relative;
+    width: min(560px, 90vw);
+    margin-top: 2.5rem;
+  }
+  .search-input {
+    width: 100%;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(200,134,10,0.35);
+    border-radius: 0;
+    color: var(--cream);
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 1.2rem;
+    padding: 0.9rem 3.5rem 0.9rem 1.4rem;
+    outline: none;
+    transition: border-color 0.3s, background 0.3s;
+    letter-spacing: 0.02em;
+  }
+  .search-input::placeholder { color: rgba(242,234,216,0.3); font-style: italic; }
+  .search-input:focus { border-color: var(--amber); background: rgba(200,134,10,0.05); }
+  .search-icon {
+    position: absolute;
+    right: 1rem; top: 50%;
+    transform: translateY(-50%);
+    color: var(--amber);
+    pointer-events: none;
+    font-size: 1.1rem;
+  }
+  .suggestions-box {
+    position: absolute;
+    top: 100%;
+    left: 0; right: 0;
+    background: #1a0f05;
+    border: 1px solid rgba(200,134,10,0.25);
+    border-top: none;
+    z-index: 100;
+    max-height: 280px;
+    overflow-y: auto;
+    display: none;
+  }
+  .suggestions-box.open { display: block; }
+  .suggestion-item {
+    padding: 0.65rem 1.4rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid rgba(200,134,10,0.07);
+    transition: background 0.2s;
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 1.05rem;
+  }
+  .suggestion-item:hover { background: rgba(200,134,10,0.1); }
+  .suggestion-item .chord-name { color: var(--cream); }
+  .suggestion-item .chord-type { color: var(--amber); font-size: 0.78rem; font-style: italic; }
+
+  /* ─── NAV ─── */
+  #navbar {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 500;
+    padding: 1rem 2rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    transition: background 0.4s, border-color 0.4s;
+  }
+  #navbar.scrolled {
+    background: rgba(10,6,2,0.92);
+    border-bottom: 1px solid rgba(200,134,10,0.15);
+    backdrop-filter: blur(10px);
+  }
+  .nav-logo {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.45rem;
+    font-weight: 700;
+    color: var(--cream);
+    letter-spacing: 0.04em;
+  }
+  .nav-logo span { color: var(--amber); font-style: italic; }
+  .nav-links { display: flex; gap: 2rem; }
+  .nav-link {
+    font-family: 'Old Standard TT', serif;
+    font-size: 0.72rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: rgba(242,234,216,0.6);
+    cursor: pointer;
+    transition: color 0.2s;
+    text-decoration: none;
+  }
+  .nav-link:hover { color: var(--amber-lt); }
+
+  /* ─── SECTION COMMON ─── */
+  .section-title {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(2rem, 5vw, 3rem);
+    font-weight: 700;
+    color: var(--cream);
+    letter-spacing: -0.01em;
+  }
+  .section-sub {
+    font-family: 'Old Standard TT', serif;
+    font-size: 0.72rem;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    color: var(--amber);
+    margin-bottom: 0.5rem;
+  }
+  .rule-amber {
+    width: 80px; height: 1px;
+    background: linear-gradient(90deg, var(--amber), transparent);
+    margin: 1rem 0;
+  }
+  .rule-center {
+    width: 120px; height: 1px;
+    background: linear-gradient(90deg, transparent, var(--amber), transparent);
+    margin: 1rem auto;
+  }
+
+  /* ─── CATEGORIES ─── */
+  .category-pill {
+    font-family: 'Old Standard TT', serif;
+    font-size: 0.7rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    padding: 0.5rem 1.2rem;
+    border: 1px solid rgba(200,134,10,0.25);
+    color: rgba(242,234,216,0.55);
+    cursor: pointer;
+    transition: all 0.25s;
+    background: transparent;
+    white-space: nowrap;
+  }
+  .category-pill:hover,
+  .category-pill.active {
+    border-color: var(--amber);
+    color: var(--amber-lt);
+    background: rgba(200,134,10,0.08);
+  }
+
+  /* ─── CHORD CARD ─── */
+  .chord-card {
+    background: linear-gradient(145deg, rgba(61,43,31,0.5) 0%, rgba(26,17,8,0.8) 100%);
+    border: 1px solid rgba(200,134,10,0.18);
+    padding: 1.4rem 1.2rem 1.2rem;
+    cursor: pointer;
+    transition: all 0.3s;
+    position: relative;
+    overflow: hidden;
+  }
+  .chord-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, rgba(200,134,10,0.4), transparent);
+    transform: scaleX(0);
+    transition: transform 0.3s;
+  }
+  .chord-card:hover {
+    border-color: rgba(200,134,10,0.45);
+    background: linear-gradient(145deg, rgba(61,43,31,0.8) 0%, rgba(26,17,8,0.95) 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 30px rgba(0,0,0,0.5), 0 2px 0 rgba(200,134,10,0.2);
+  }
+  .chord-card:hover::before { transform: scaleX(1); }
+  .chord-card-name {
+    font-family: 'Playfair Display', serif;
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--cream);
+    line-height: 1;
+  }
+  .chord-card-full {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 0.85rem;
+    color: var(--amber);
+    font-style: italic;
+    margin-top: 0.2rem;
+  }
+  .chord-card-diff {
+    display: flex;
+    gap: 2px;
+    margin-top: 0.6rem;
+  }
+  .diff-dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: rgba(200,134,10,0.2);
+  }
+  .diff-dot.filled { background: var(--amber); }
+  .chord-card-category {
+    font-family: 'Old Standard TT', serif;
+    font-size: 0.62rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: rgba(242,234,216,0.35);
+    margin-top: 0.5rem;
+  }
+
+  /* ─── CHORD MODAL ─── */
+  #chord-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 800;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+    background: rgba(0,0,0,0);
+    pointer-events: none;
+    transition: background 0.35s;
+  }
+  #chord-modal.open {
+    background: rgba(0,0,0,0.88);
+    pointer-events: all;
+  }
+  #chord-modal-inner {
+    background: linear-gradient(145deg, #231408 0%, #150d05 100%);
+    border: 1px solid rgba(200,134,10,0.3);
+    width: min(880px, 95vw);
+    max-height: 90vh;
+    overflow-y: auto;
+    opacity: 0;
+    transform: translateY(24px) scale(0.98);
+    transition: opacity 0.35s, transform 0.35s;
+    position: relative;
+  }
+  #chord-modal.open #chord-modal-inner {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  .modal-close {
+    position: absolute;
+    top: 1.2rem; right: 1.2rem;
+    background: none;
+    border: 1px solid rgba(200,134,10,0.25);
+    color: rgba(242,234,216,0.6);
+    width: 36px; height: 36px;
+    cursor: pointer;
+    font-size: 1.2rem;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.2s;
+    z-index: 10;
+  }
+  .modal-close:hover { border-color: var(--amber); color: var(--amber); }
+
+  /* ─── CHORD DIAGRAM (SVG-based) ─── */
+  .chord-diagram-wrap {
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    padding: 1.5rem;
+  }
+
+  /* ─── FRETBOARD ─── */
+  .fretboard-container {
+    background: linear-gradient(135deg, #3d2010 0%, #2a1508 50%, #1d0d04 100%);
+    border: 1px solid rgba(200,134,10,0.25);
+    border-radius: 4px;
+    padding: 1rem;
+    position: relative;
+    overflow: hidden;
+  }
+  .fretboard-container::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: repeating-linear-gradient(
+      90deg,
+      transparent 0px,
+      transparent 2px,
+      rgba(0,0,0,0.05) 2px,
+      rgba(0,0,0,0.05) 4px
+    );
+    pointer-events: none;
+  }
+
+  /* ─── SOUND BUTTON ─── */
+  .btn-sound {
+    background: transparent;
+    border: 1px solid var(--amber-dk);
+    color: var(--amber-lt);
+    font-family: 'Old Standard TT', serif;
+    font-size: 0.72rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    padding: 0.65rem 1.6rem;
+    cursor: pointer;
+    transition: all 0.25s;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  .btn-sound:hover {
+    background: rgba(200,134,10,0.12);
+    border-color: var(--amber);
+  }
+  .btn-sound.playing { background: rgba(200,134,10,0.18); border-color: var(--amber); }
+
+  /* ─── TABS (modal) ─── */
+  .modal-tab-btn {
+    font-family: 'Old Standard TT', serif;
+    font-size: 0.68rem;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    padding: 0.6rem 1.2rem;
+    border: none;
+    border-bottom: 2px solid transparent;
+    background: none;
+    color: rgba(242,234,216,0.4);
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .modal-tab-btn.active {
+    color: var(--amber-lt);
+    border-bottom-color: var(--amber);
+  }
+  .modal-tab-btn:hover { color: rgba(242,234,216,0.7); }
+  .tab-pane { display: none; }
+  .tab-pane.active { display: block; }
+
+  /* ─── FINGER GUIDE TABLE ─── */
+  .finger-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-family: 'Crimson Text', serif;
+    font-size: 1rem;
+  }
+  .finger-table th {
+    font-family: 'Old Standard TT', serif;
+    font-size: 0.65rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--amber);
+    text-align: left;
+    padding: 0.4rem 0.8rem;
+    border-bottom: 1px solid rgba(200,134,10,0.2);
+  }
+  .finger-table td {
+    padding: 0.5rem 0.8rem;
+    color: rgba(242,234,216,0.8);
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+  }
+  .finger-num {
+    display: inline-flex;
+    align-items: center; justify-content: center;
+    width: 24px; height: 24px;
+    background: var(--amber-dk);
+    border-radius: 50%;
+    color: #fff;
+    font-size: 0.78rem;
+    font-family: 'Old Standard TT', serif;
+    font-weight: bold;
+  }
+
+  /* ─── INFO CARDS ─── */
+  .info-card {
+    background: rgba(61,43,31,0.25);
+    border: 1px solid rgba(200,134,10,0.12);
+    padding: 1rem 1.2rem;
+    margin-bottom: 0.8rem;
+  }
+  .info-card-title {
+    font-family: 'Old Standard TT', serif;
+    font-size: 0.65rem;
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    color: var(--amber);
+    margin-bottom: 0.5rem;
+  }
+  .info-card-text {
+    font-family: 'Crimson Text', serif;
+    font-size: 1rem;
+    color: rgba(242,234,216,0.75);
+    line-height: 1.55;
+  }
+
+  /* ─── PROGRESSION CHIPS ─── */
+  .prog-chip {
+    display: inline-block;
+    border: 1px solid rgba(200,134,10,0.28);
+    color: var(--cream);
+    font-family: 'Playfair Display', serif;
+    font-size: 1.1rem;
+    padding: 0.4rem 0.9rem;
+    cursor: pointer;
+    margin: 0.25rem;
+    transition: all 0.2s;
+  }
+  .prog-chip:hover {
+    background: rgba(200,134,10,0.12);
+    border-color: var(--amber);
+    color: var(--amber-lt);
+  }
+
+  /* ─── FAVORITE BTN ─── */
+  .btn-fav {
+    background: transparent;
+    border: 1px solid rgba(200,134,10,0.2);
+    color: rgba(242,234,216,0.4);
+    width: 36px; height: 36px;
+    cursor: pointer;
+    font-size: 1rem;
+    display: inline-flex; align-items: center; justify-content: center;
+    transition: all 0.2s;
+  }
+  .btn-fav.active { color: var(--amber); border-color: var(--amber); }
+  .btn-fav:hover { border-color: var(--amber); color: var(--amber-lt); }
+
+  /* ─── THEORY CARDS ─── */
+  .theory-card {
+    background: linear-gradient(135deg, rgba(45,28,12,0.6) 0%, rgba(20,12,4,0.9) 100%);
+    border: 1px solid rgba(200,134,10,0.15);
+    padding: 1.5rem;
+    position: relative;
+    overflow: hidden;
+  }
+  .theory-card::after {
+    content: '';
+    position: absolute;
+    bottom: 0; right: 0;
+    width: 60px; height: 60px;
+    background: radial-gradient(circle, rgba(200,134,10,0.1) 0%, transparent 70%);
+  }
+  .theory-card-num {
+    font-family: 'Playfair Display', serif;
+    font-size: 3rem;
+    font-weight: 900;
+    color: rgba(200,134,10,0.12);
+    position: absolute;
+    top: 0.5rem; right: 1rem;
+    line-height: 1;
+  }
+  .theory-card-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.1rem;
+    color: var(--cream);
+    margin-bottom: 0.5rem;
+  }
+  .theory-card-body {
+    font-family: 'Crimson Text', serif;
+    font-size: 0.95rem;
+    color: rgba(242,234,216,0.6);
+    line-height: 1.5;
+  }
+
+  /* ─── ROADMAP ─── */
+  .roadmap-step {
+    display: flex;
+    gap: 1.2rem;
+    margin-bottom: 1.8rem;
+    position: relative;
+  }
+  .roadmap-step::before {
+    content: '';
+    position: absolute;
+    left: 15px;
+    top: 32px;
+    bottom: -1.8rem;
+    width: 1px;
+    background: linear-gradient(to bottom, rgba(200,134,10,0.3), transparent);
+  }
+  .roadmap-step:last-child::before { display: none; }
+  .roadmap-num {
+    width: 32px; height: 32px;
+    border: 1px solid var(--amber-dk);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Old Standard TT', serif;
+    font-size: 0.75rem;
+    color: var(--amber-lt);
+    flex-shrink: 0;
+    background: rgba(200,134,10,0.06);
+  }
+  .roadmap-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.1rem;
+    color: var(--cream);
+    margin-bottom: 0.2rem;
+  }
+  .roadmap-body {
+    font-family: 'Crimson Text', serif;
+    font-size: 0.92rem;
+    color: rgba(242,234,216,0.55);
+  }
+
+  /* ─── DAILY CHALLENGE ─── */
+  .challenge-card {
+    background: linear-gradient(135deg, rgba(80,45,10,0.4) 0%, rgba(20,12,4,0.95) 100%);
+    border: 1px solid rgba(200,134,10,0.3);
+    padding: 2rem;
+    position: relative;
+    overflow: hidden;
+  }
+  .challenge-card::before {
+    content: '"';
+    position: absolute;
+    top: -0.5rem;
+    right: 1.5rem;
+    font-family: 'Playfair Display', serif;
+    font-size: 8rem;
+    color: rgba(200,134,10,0.07);
+    line-height: 1;
+    pointer-events: none;
+  }
+
+  /* ─── VINYL DECORATION ─── */
+  .vinyl-decoration {
+    width: 80px; height: 80px;
+    border-radius: 50%;
+    border: 1px solid rgba(200,134,10,0.15);
+    position: absolute;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .vinyl-decoration::before {
+    content: '';
+    width: 12px; height: 12px;
+    border-radius: 50%;
+    background: rgba(200,134,10,0.3);
+  }
+
+  /* ─── RECENTLY VIEWED ─── */
+  .recent-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    border: 1px solid rgba(200,134,10,0.2);
+    padding: 0.35rem 0.85rem;
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 1rem;
+    color: rgba(242,234,216,0.6);
+    cursor: pointer;
+    transition: all 0.2s;
+    margin: 0.2rem;
+  }
+  .recent-chip:hover {
+    border-color: var(--amber);
+    color: var(--cream);
+  }
+
+  /* ─── FOOTER ─── */
+  footer {
+    border-top: 1px solid rgba(200,134,10,0.1);
+    background: rgba(0,0,0,0.3);
+  }
+
+  /* ─── ANIMATIONS ─── */
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  .fade-up { animation: fadeUp 0.7s ease both; }
+  .delay-1 { animation-delay: 0.1s; }
+  .delay-2 { animation-delay: 0.25s; }
+  .delay-3 { animation-delay: 0.4s; }
+  .delay-4 { animation-delay: 0.55s; }
+  .delay-5 { animation-delay: 0.7s; }
+
+  @keyframes rotateSlow {
+    from { transform: rotate(0deg); }
+    to   { transform: rotate(360deg); }
+  }
+
+  /* Scroll reveal */
+  .reveal { opacity: 0; transform: translateY(28px); transition: opacity 0.7s ease, transform 0.7s ease; }
+  .reveal.visible { opacity: 1; transform: translateY(0); }
+
+  /* ─── RESPONSIVE ─── */
+  @media (max-width: 640px) {
+    .nav-links { display: none; }
+    .chord-grid { grid-template-columns: repeat(2, 1fr) !important; }
+  }
+
+  /* ─── MISC ─── */
+  .text-amber     { color: var(--amber); }
+  .text-amber-lt  { color: var(--amber-lt); }
+  .text-cream     { color: var(--cream); }
+  .text-muted     { color: rgba(242,234,216,0.45); }
+  .border-amber   { border-color: rgba(200,134,10,0.25); }
+  .bg-paper       { background: rgba(61,43,31,0.3); }
+  .separator { height: 1px; background: linear-gradient(90deg, transparent, rgba(200,134,10,0.2), transparent); }
+
+  .hover-amber { transition: color 0.2s; }
+  .hover-amber:hover { color: var(--amber-lt); }
+
+  /* Scrollable pills container */
+  .pills-scroll {
+    display: flex;
+    gap: 0.5rem;
+    overflow-x: auto;
+    padding-bottom: 0.5rem;
+    scrollbar-width: none;
+  }
+  .pills-scroll::-webkit-scrollbar { display: none; }
+
+  /* Barre indicator */
+  .barre-bar {
+    background: linear-gradient(90deg, var(--amber-dk), var(--amber));
+    height: 10px;
+    border-radius: 5px;
+    position: absolute;
+    z-index: 2;
+  }
+
+  /* String labels */
+  .string-label {
+    font-family: 'Old Standard TT', serif;
+    font-size: 0.6rem;
+    color: var(--amber);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+  }
+
+  /* ── PREMIUM ANIMATIONS ── */
+  @keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(32px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes fadeInScale {
+    from { opacity: 0; transform: scale(0.96); }
+    to   { opacity: 1; transform: scale(1); }
+  }
+  @keyframes shimmer {
+    0%   { background-position: -400px 0; }
+    100% { background-position: 400px 0; }
+  }
+  @keyframes floatY {
+    0%, 100% { transform: translateY(0px); }
+    50%       { transform: translateY(-6px); }
+  }
+  @keyframes glowPulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(200,134,10,0); }
+    50%       { box-shadow: 0 0 20px 4px rgba(200,134,10,0.12); }
+  }
+
+  /* Loading screen */
+  #pwa-splash {
+    position: fixed;
+    inset: 0;
+    z-index: 10000;
+    background: var(--black);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 1.4rem;
+    transition: opacity 0.6s ease, visibility 0.6s ease;
+  }
+  #pwa-splash.hidden { opacity: 0; visibility: hidden; pointer-events: none; }
+  .splash-logo-img {
+    width: 72px; height: 72px;
+    border-radius: 50%;
+    border: 1px solid rgba(200,134,10,0.4);
+    object-fit: cover;
+    animation: glowPulse 2s ease-in-out infinite;
+  }
+  .splash-wordmark {
+    font-family: 'Playfair Display', serif;
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--cream);
+    letter-spacing: 0.04em;
+  }
+  .splash-wordmark span { color: var(--amber); font-style: italic; }
+  .splash-loader {
+    width: 120px; height: 1px;
+    background: rgba(200,134,10,0.15);
+    position: relative;
+    overflow: hidden;
+  }
+  .splash-loader::after {
+    content: '';
+    position: absolute;
+    left: -40%;
+    top: 0; bottom: 0;
+    width: 40%;
+    background: linear-gradient(90deg, transparent, var(--amber), transparent);
+    animation: shimmer 1.2s ease-in-out infinite;
+    background-size: 400px 1px;
+  }
+
+  /* Enhanced chord card hover */
+  .chord-card {
+    will-change: transform;
+    transition: all 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
+  }
+  .chord-card:hover {
+    transform: translateY(-4px) scale(1.02) !important;
+    box-shadow: 0 12px 40px rgba(0,0,0,0.6), 0 2px 0 rgba(200,134,10,0.25) !important;
+  }
+  .chord-card:active { transform: translateY(-1px) scale(0.99) !important; transition-duration: 0.1s !important; }
+
+  /* Theory card hover */
+  .theory-card {
+    transition: all 0.3s ease !important;
+    will-change: transform;
+  }
+  .theory-card:hover {
+    transform: translateY(-3px);
+    border-color: rgba(200,134,10,0.3) !important;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+  }
+
+  /* Reveal stagger for grids */
+  .chord-grid .chord-card:nth-child(1)  { transition-delay: 0.03s; }
+  .chord-grid .chord-card:nth-child(2)  { transition-delay: 0.06s; }
+  .chord-grid .chord-card:nth-child(3)  { transition-delay: 0.09s; }
+  .chord-grid .chord-card:nth-child(4)  { transition-delay: 0.12s; }
+  .chord-grid .chord-card:nth-child(5)  { transition-delay: 0.15s; }
+  .chord-grid .chord-card:nth-child(6)  { transition-delay: 0.18s; }
+  .chord-grid .chord-card:nth-child(n+7){ transition-delay: 0.21s; }
+
+  /* Nav logo image */
+  .nav-logo-img {
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    border: 1px solid rgba(200,134,10,0.4);
+    object-fit: cover;
+    margin-right: 0.5rem;
+    transition: transform 0.3s ease, border-color 0.3s ease;
+  }
+  .nav-logo-img:hover { transform: scale(1.08); border-color: var(--amber); }
+
+  /* ── ABOUT / CREATOR SECTIONS ── */
+  #about-me, #about-creator {
+    padding: 5rem 2rem;
+  }
+  #about-me {
+    background: linear-gradient(to bottom, #070401 0%, #0a0602 100%);
+  }
+  #about-creator {
+    background: linear-gradient(to bottom, #0a0602 0%, #070401 100%);
+  }
+
+  .about-me-text {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: clamp(1.05rem, 2.5vw, 1.3rem);
+    color: rgba(242,234,216,0.75);
+    line-height: 1.9;
+    font-style: italic;
+    max-width: 620px;
+  }
+
+  .creator-card {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 3rem;
+    align-items: center;
+    max-width: 820px;
+    margin: 0 auto;
+    padding: 3rem;
+    border: 1px solid rgba(200,134,10,0.15);
+    background: linear-gradient(135deg, rgba(45,28,12,0.5) 0%, rgba(15,9,3,0.9) 100%);
+    position: relative;
+    overflow: hidden;
+  }
+  .creator-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(200,134,10,0.4), transparent);
+  }
+
+  .creator-avatar-wrap {
+    position: relative;
+  }
+  .creator-avatar {
+    width: 110px; height: 110px;
+    border-radius: 50%;
+    border: 1px solid rgba(200,134,10,0.3);
+    object-fit: cover;
+    display: block;
+    transition: transform 0.4s ease, border-color 0.3s ease;
+    animation: floatY 5s ease-in-out infinite;
+  }
+  .creator-avatar:hover { transform: scale(1.04) !important; border-color: var(--amber); animation-play-state: paused; }
+
+  .creator-avatar-placeholder {
+    width: 110px; height: 110px;
+    border-radius: 50%;
+    border: 1px solid rgba(200,134,10,0.3);
+    background: radial-gradient(circle, rgba(61,43,31,0.8) 0%, rgba(20,12,4,0.95) 100%);
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Playfair Display', serif;
+    font-size: 2.2rem;
+    color: var(--amber-dk);
+    animation: floatY 5s ease-in-out infinite;
+  }
+
+  .creator-name {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.7rem;
+    font-weight: 700;
+    color: var(--cream);
+    letter-spacing: -0.01em;
+    margin-bottom: 0.2rem;
+  }
+  .creator-handle {
+    font-family: 'Old Standard TT', serif;
+    font-size: 0.7rem;
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    color: var(--amber);
+    margin-bottom: 1.2rem;
+  }
+  .creator-bio {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 1rem;
+    color: rgba(242,234,216,0.6);
+    font-style: italic;
+    line-height: 1.65;
+    margin-bottom: 1.5rem;
+  }
+  .social-links {
+    display: flex;
+    gap: 0.8rem;
+    flex-wrap: wrap;
+  }
+  .social-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    padding: 0.5rem 1.2rem;
+    border: 1px solid rgba(200,134,10,0.25);
+    font-family: 'Old Standard TT', serif;
+    font-size: 0.68rem;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: rgba(242,234,216,0.6);
+    text-decoration: none;
+    transition: all 0.25s ease;
+    position: relative;
+    overflow: hidden;
+  }
+  .social-link::after {
+    content: '';
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    height: 1px;
+    background: var(--amber);
+    transform: scaleX(0);
+    transition: transform 0.3s ease;
+  }
+  .social-link:hover {
+    border-color: var(--amber);
+    color: var(--amber-lt);
+    background: rgba(200,134,10,0.07);
+  }
+  .social-link:hover::after { transform: scaleX(1); }
+  .social-link svg { transition: transform 0.25s ease; }
+  .social-link:hover svg { transform: scale(1.15); }
+
+  /* ── RESPONSIVE ENHANCEMENTS ── */
+
+  /* Tablet (641px – 1023px) */
+  @media (min-width: 641px) and (max-width: 1023px) {
+    #navbar { padding: 0.9rem 1.5rem; }
+    .creator-card { grid-template-columns: 1fr; text-align: center; gap: 2rem; padding: 2rem; }
+    .social-links { justify-content: center; }
+    .creator-avatar, .creator-avatar-placeholder { margin: 0 auto; }
+  }
+
+  /* Mobile (≤ 640px) */
+  @media (max-width: 640px) {
+    .nav-links { display: none; }
+    .chord-grid { grid-template-columns: repeat(2, 1fr) !important; }
+
+    #navbar { padding: 0.75rem 1rem; }
+    .nav-logo { font-size: 1.2rem; }
+
+    .hero-tagline { font-size: clamp(2.2rem, 10vw, 3.5rem) !important; }
+    .search-input { font-size: 1rem; padding: 0.8rem 3rem 0.8rem 1rem; }
+
+    .creator-card {
+      grid-template-columns: 1fr;
+      text-align: center;
+      gap: 1.5rem;
+      padding: 1.5rem 1.2rem;
+    }
+    .creator-avatar, .creator-avatar-placeholder { margin: 0 auto; width: 90px; height: 90px; }
+    .social-links { justify-content: center; }
+    .about-me-text { font-size: 1.05rem; }
+
+    /* Bottom-safe spacing for PWA on iOS */
+    footer { padding-bottom: calc(2rem + env(safe-area-inset-bottom)); }
+
+    /* Touch-friendly cards */
+    .chord-card { padding: 1.1rem 1rem; }
+    .category-pill { padding: 0.55rem 1rem; font-size: 0.68rem; }
+
+    /* Larger tap targets */
+    .btn-sound { padding: 0.75rem 1.4rem; }
+    .nav-logo-img { width: 26px; height: 26px; }
+  }
+
+  /* Desktop (≥ 1280px) */
+  @media (min-width: 1280px) {
+    .chord-grid { grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)) !important; }
+    #chords .chord-grid,
+    section .chord-grid { gap: 1.2rem; }
+  }
+
+  /* Wide screens */
+  @media (min-width: 1600px) {
+    #hero .hero-tagline { font-size: 7.5rem; }
+    .section-title { font-size: 3.5rem; }
+  }
+
+  /* Hover: lift only on non-touch */
+  @media (hover: hover) {
+    .category-pill:hover { transform: translateY(-1px); }
+    .social-link:hover { transform: translateY(-1px); }
+    .roadmap-step:hover .roadmap-num { border-color: var(--amber); color: var(--amber); background: rgba(200,134,10,0.12); }
+  }
+
+  /* Smooth transitions for interactive elements on mobile */
+  @media (hover: none) {
+    .chord-card:hover { transform: none !important; }
+    .chord-card:active { transform: scale(0.97) !important; transition-duration: 0.1s !important; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ════════════════════════════════════════════════════════════
+     PWA SPLASH / LOADING SCREEN
+════════════════════════════════════════════════════════════ -->
+<div id="pwa-splash">
+  <img src="assets/logo.jpg" alt="AnGuiter" class="splash-logo-img" onerror="this.style.display='none'"/>
+  <div class="splash-wordmark">An<span>Guiter</span></div>
+  <div class="splash-loader"></div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════
+     NAVBAR
+════════════════════════════════════════════════════════════ -->
+<nav id="navbar">
+  <div class="nav-logo" style="display:flex;align-items:center;">
+    <img src="assets/logo.jpg" alt="AnGuiter logo" class="nav-logo-img" onerror="this.style.display='none'"/>
+    An<span>Guiter</span>
+  </div>
+  <div class="nav-links">
+    <a class="nav-link" onclick="scrollTo('#chords')">Chords</a>
+    <a class="nav-link" onclick="scrollTo('#theory')">Theory</a>
+    <a class="nav-link" onclick="scrollTo('#roadmap')">Roadmap</a>
+    <a class="nav-link" onclick="scrollTo('#challenge')">Daily</a>
+    <a class="nav-link" onclick="scrollTo('#about-creator')">About</a>
+    <a class="nav-link" onclick="openFavorites()">Favorites</a>
+  </div>
+  <div class="nav-links">
+    <button class="category-pill" style="font-size:0.65rem;padding:0.4rem 0.9rem;" onclick="openFavorites()">♡ Saved</button>
+  </div>
+</nav>
+
+<!-- ════════════════════════════════════════════════════════════
+     HERO
+════════════════════════════════════════════════════════════ -->
+<section id="hero">
+  <!-- Decorative rings -->
+  <div class="hero-bg-rings" aria-hidden="true">
+    <div class="hero-ring" style="width:300px;height:300px;animation-delay:0s;"></div>
+    <div class="hero-ring" style="width:500px;height:500px;animation-delay:1.5s;"></div>
+    <div class="hero-ring" style="width:750px;height:750px;animation-delay:3s;"></div>
+    <div class="hero-ring" style="width:1050px;height:1050px;animation-delay:4.5s;"></div>
+    <div class="hero-ring" style="width:1400px;height:1400px;animation-delay:6s;"></div>
+  </div>
+  <div class="hero-grain" aria-hidden="true"></div>
+  <div class="hero-vignette" aria-hidden="true"></div>
+
+  <!-- Vinyl decoration left -->
+  <div aria-hidden="true" style="position:absolute;left:5%;top:30%;opacity:0.15;">
+    <svg width="120" height="120" viewBox="0 0 120 120">
+      <circle cx="60" cy="60" r="58" fill="none" stroke="#C8860A" stroke-width="1"/>
+      <circle cx="60" cy="60" r="45" fill="none" stroke="#C8860A" stroke-width="0.5"/>
+      <circle cx="60" cy="60" r="30" fill="none" stroke="#C8860A" stroke-width="0.5"/>
+      <circle cx="60" cy="60" r="15" fill="none" stroke="#C8860A" stroke-width="1"/>
+      <circle cx="60" cy="60" r="5" fill="#C8860A" opacity="0.5"/>
+      <line x1="60" y1="2" x2="60" y2="118" stroke="#C8860A" stroke-width="0.3"/>
+      <line x1="2" y1="60" x2="118" y2="60" stroke="#C8860A" stroke-width="0.3"/>
+    </svg>
+  </div>
+  <!-- Guitar silhouette right -->
+  <div aria-hidden="true" style="position:absolute;right:4%;top:15%;opacity:0.06;">
+    <svg width="160" height="400" viewBox="0 0 160 400" fill="var(--amber)">
+      <path d="M80,10 C80,10 90,20 88,50 L85,160 C100,162 130,175 138,210 C148,255 125,300 80,305 C35,300 12,255 22,210 C30,175 60,162 75,160 L72,50 C70,20 80,10 80,10 Z"/>
+      <rect x="76" y="8" width="8" height="30" rx="2"/>
+      <rect x="73" y="2" width="14" height="10" rx="2"/>
+      <line x1="60" y1="50" x2="60" y2="160" stroke="#000" stroke-width="1"/>
+      <line x1="67" y1="50" x2="67" y2="160" stroke="#000" stroke-width="1"/>
+      <line x1="74" y1="50" x2="74" y2="160" stroke="#000" stroke-width="1"/>
+      <line x1="81" y1="50" x2="81" y2="160" stroke="#000" stroke-width="1"/>
+      <line x1="88" y1="50" x2="88" y2="160" stroke="#000" stroke-width="1"/>
+      <line x1="95" y1="50" x2="95" y2="160" stroke="#000" stroke-width="1"/>
+      <circle cx="80" cy="245" r="25" fill="none" stroke="#000" stroke-width="2"/>
+    </svg>
+  </div>
+
+  <div style="position:relative;z-index:2;text-align:center;">
+    <div class="fade-up">
+      <span class="amber-badge">Est. MMXXIV · Guwahati Sessions</span>
+    </div>
+    <h1 class="hero-tagline fade-up delay-1" style="margin-top:1.2rem;">
+      Every Chord<br/>Ever Played.
+    </h1>
+    <div class="hero-divider fade-up delay-2"></div>
+    <div class="hero-sub fade-up delay-2">AnGuiter — The Complete Guitar Encyclopedia</div>
+    <p class="hero-desc fade-up delay-3">From first-year open chords to the voicings that defined jazz, blues, and beyond. Every shape your fingers could ever need.</p>
+
+    <!-- Search -->
+    <div class="search-wrap fade-up delay-4" style="margin:0 auto;">
+      <input
+        type="text"
+        id="hero-search"
+        class="search-input"
+        placeholder="Search a chord... C, Dm, Fmaj7, Bsus4, G#m..."
+        autocomplete="off"
+        oninput="handleSearch(this.value)"
+        onkeydown="searchKeyDown(event)"
+      />
+      <span class="search-icon">⌕</span>
+      <div id="suggestions-box" class="suggestions-box"></div>
+    </div>
+
+    <!-- Search examples -->
+    <div class="fade-up delay-5" style="margin-top:1rem;display:flex;gap:0.5rem;flex-wrap:wrap;justify-content:center;">
+      <span style="font-family:'Old Standard TT',serif;font-size:0.65rem;letter-spacing:0.2em;text-transform:uppercase;color:rgba(242,234,216,0.3);align-self:center;">Try:</span>
+      <span onclick="searchChord('C')"   style="cursor:pointer;color:var(--amber);font-family:'Cormorant Garamond',serif;font-size:1rem;border-bottom:1px solid rgba(200,134,10,0.3);">C</span>
+      <span onclick="searchChord('Am')"  style="cursor:pointer;color:var(--amber);font-family:'Cormorant Garamond',serif;font-size:1rem;border-bottom:1px solid rgba(200,134,10,0.3);">Am</span>
+      <span onclick="searchChord('Fmaj7')" style="cursor:pointer;color:var(--amber);font-family:'Cormorant Garamond',serif;font-size:1rem;border-bottom:1px solid rgba(200,134,10,0.3);">Fmaj7</span>
+      <span onclick="searchChord('G7')"  style="cursor:pointer;color:var(--amber);font-family:'Cormorant Garamond',serif;font-size:1rem;border-bottom:1px solid rgba(200,134,10,0.3);">G7</span>
+      <span onclick="searchChord('Bm')"  style="cursor:pointer;color:var(--amber);font-family:'Cormorant Garamond',serif;font-size:1rem;border-bottom:1px solid rgba(200,134,10,0.3);">Bm</span>
+      <span onclick="searchChord('Dm7')" style="cursor:pointer;color:var(--amber);font-family:'Cormorant Garamond',serif;font-size:1rem;border-bottom:1px solid rgba(200,134,10,0.3);">Dm7</span>
+    </div>
+  </div>
+
+  <!-- Scroll indicator -->
+  <div style="position:absolute;bottom:2rem;left:50%;transform:translateX(-50%);opacity:0.4;display:flex;flex-direction:column;align-items:center;gap:0.4rem;">
+    <span style="font-family:'Old Standard TT',serif;font-size:0.6rem;letter-spacing:0.3em;text-transform:uppercase;color:var(--amber);">Scroll</span>
+    <div style="width:1px;height:40px;background:linear-gradient(to bottom, var(--amber), transparent);"></div>
+  </div>
+</section>
+
+<!-- ════════════════════════════════════════════════════════════
+     RECENTLY VIEWED
+════════════════════════════════════════════════════════════ -->
+<div id="recently-viewed-section" style="display:none;background:rgba(0,0,0,0.3);border-top:1px solid rgba(200,134,10,0.1);border-bottom:1px solid rgba(200,134,10,0.1);padding:1rem 2rem;">
+  <div style="max-width:1200px;margin:0 auto;display:flex;align-items:center;gap:1rem;flex-wrap:wrap;">
+    <span style="font-family:'Old Standard TT',serif;font-size:0.62rem;letter-spacing:0.2em;text-transform:uppercase;color:var(--amber);white-space:nowrap;">Recently Viewed</span>
+    <div id="recent-chips" style="display:flex;gap:0.4rem;flex-wrap:wrap;"></div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════
+     POPULAR CHORDS STRIP
+════════════════════════════════════════════════════════════ -->
+<section style="padding:4rem 2rem 3rem;background:linear-gradient(to bottom, #0a0603 0%, #110a04 100%);">
+  <div style="max-width:1200px;margin:0 auto;">
+    <div class="reveal">
+      <div class="section-sub">Most Played</div>
+      <h2 class="section-title">Popular Chords</h2>
+      <div class="rule-amber"></div>
+    </div>
+    <div id="popular-grid" class="chord-grid reveal" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:1rem;margin-top:2rem;"></div>
+  </div>
+</section>
+
+<!-- ════════════════════════════════════════════════════════════
+     FULL CHORD LIBRARY
+════════════════════════════════════════════════════════════ -->
+<section id="chords" style="padding:4rem 2rem;background:linear-gradient(to bottom, #110a04 0%, #0d0804 100%);">
+  <div style="max-width:1200px;margin:0 auto;">
+    <div class="reveal">
+      <div class="section-sub">Complete Library</div>
+      <h2 class="section-title">Chord Encyclopedia</h2>
+      <div class="rule-amber"></div>
+      <p style="font-family:'Cormorant Garamond',serif;font-style:italic;color:rgba(242,234,216,0.5);font-size:1.05rem;margin-top:0.5rem;">Every voicing. Every key. Every variation.</p>
+    </div>
+
+    <!-- Category filters -->
+    <div class="pills-scroll reveal" style="margin-top:2rem;gap:0.5rem;">
+      <button class="category-pill active" data-cat="all"         onclick="filterCategory('all',this)">All Chords</button>
+      <button class="category-pill"        data-cat="major"       onclick="filterCategory('major',this)">Major</button>
+      <button class="category-pill"        data-cat="minor"       onclick="filterCategory('minor',this)">Minor</button>
+      <button class="category-pill"        data-cat="7th"         onclick="filterCategory('7th',this)">7th</button>
+      <button class="category-pill"        data-cat="maj7"        onclick="filterCategory('maj7',this)">Major 7th</button>
+      <button class="category-pill"        data-cat="min7"        onclick="filterCategory('min7',this)">Minor 7th</button>
+      <button class="category-pill"        data-cat="sus"         onclick="filterCategory('sus',this)">Suspended</button>
+      <button class="category-pill"        data-cat="jazz"        onclick="filterCategory('jazz',this)">Jazz</button>
+      <button class="category-pill"        data-cat="blues"       onclick="filterCategory('blues',this)">Blues</button>
+      <button class="category-pill"        data-cat="barre"       onclick="filterCategory('barre',this)">Barre</button>
+      <button class="category-pill"        data-cat="fingerstyle" onclick="filterCategory('fingerstyle',this)">Fingerstyle</button>
+    </div>
+
+    <!-- Alphabet quick-jump -->
+    <div class="pills-scroll reveal" style="margin-top:1rem;">
+      <span style="font-family:'Old Standard TT',serif;font-size:0.6rem;letter-spacing:0.2em;color:rgba(242,234,216,0.3);align-self:center;">Root:</span>
+      <template id="alpha-tmpl"></template>
+      <!-- JS fills this -->
+      <div id="alpha-jump" style="display:flex;gap:0.3rem;"></div>
+    </div>
+
+    <!-- Library grid -->
+    <div id="library-grid" class="chord-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:1rem;margin-top:2rem;"></div>
+    <div id="no-results" style="display:none;text-align:center;padding:3rem;color:rgba(242,234,216,0.35);font-family:'Cormorant Garamond',serif;font-size:1.1rem;font-style:italic;">No chords match your search. Try a different query.</div>
+  </div>
+</section>
+
+<!-- ════════════════════════════════════════════════════════════
+     BEGINNER STARTER PACK
+════════════════════════════════════════════════════════════ -->
+<section style="padding:4rem 2rem;background:linear-gradient(to bottom, #0d0804 0%, #0a0602 100%);">
+  <div style="max-width:1200px;margin:0 auto;">
+    <div class="reveal" style="text-align:center;margin-bottom:2.5rem;">
+      <div class="section-sub">For The New String-Bender</div>
+      <h2 class="section-title">Beginner Starter Pack</h2>
+      <div class="rule-center"></div>
+      <p style="font-family:'Cormorant Garamond',serif;font-style:italic;color:rgba(242,234,216,0.5);font-size:1.05rem;max-width:500px;margin:0 auto;">These eight chords will unlock hundreds of songs. Start here.</p>
+    </div>
+    <div id="starter-grid" class="chord-grid reveal" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:1rem;"></div>
+  </div>
+</section>
+
+<!-- ════════════════════════════════════════════════════════════
+     GUITAR THEORY MINI CARDS
+════════════════════════════════════════════════════════════ -->
+<section id="theory" style="padding:4rem 2rem;background:linear-gradient(to bottom, #0a0602 0%, #100902 100%);">
+  <div style="max-width:1200px;margin:0 auto;">
+    <div class="reveal">
+      <div class="section-sub">Knowledge</div>
+      <h2 class="section-title">Guitar Theory</h2>
+      <div class="rule-amber"></div>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:1.2rem;margin-top:2rem;" id="theory-grid"></div>
+  </div>
+</section>
+
+<!-- ════════════════════════════════════════════════════════════
+     PRACTICE ROADMAP
+════════════════════════════════════════════════════════════ -->
+<section id="roadmap" style="padding:4rem 2rem;background:linear-gradient(to bottom, #100902 0%, #0a0602 100%);">
+  <div style="max-width:900px;margin:0 auto;">
+    <div class="reveal" style="text-align:center;margin-bottom:3rem;">
+      <div class="section-sub">Your Journey</div>
+      <h2 class="section-title">Practice Roadmap</h2>
+      <div class="rule-center"></div>
+    </div>
+    <div id="roadmap-steps"></div>
+  </div>
+</section>
+
+<!-- ════════════════════════════════════════════════════════════
+     DAILY CHORD CHALLENGE
+════════════════════════════════════════════════════════════ -->
+<section id="challenge" style="padding:4rem 2rem;background:linear-gradient(to bottom, #0a0602 0%, #070401 100%);">
+  <div style="max-width:900px;margin:0 auto;">
+    <div class="reveal" style="text-align:center;margin-bottom:2.5rem;">
+      <div class="section-sub">Today's Practice</div>
+      <h2 class="section-title">Daily Chord Challenge</h2>
+      <div class="rule-center"></div>
+    </div>
+    <div id="daily-challenge-card" class="challenge-card reveal"></div>
+  </div>
+</section>
+
+<!-- ════════════════════════════════════════════════════════════
+     FAVORITES PANEL (slide-in)
+════════════════════════════════════════════════════════════ -->
+<div id="fav-panel" style="position:fixed;top:0;right:-360px;width:340px;height:100vh;background:#1a0e06;border-left:1px solid rgba(200,134,10,0.2);z-index:700;transition:right 0.4s cubic-bezier(0.4,0,0.2,1);overflow-y:auto;padding:2rem 1.5rem;">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem;">
+    <div>
+      <div class="section-sub" style="margin-bottom:0.2rem;">Your Collection</div>
+      <h3 style="font-family:'Playfair Display',serif;font-size:1.4rem;color:var(--cream);">Saved Chords</h3>
+    </div>
+    <button onclick="closeFavorites()" style="background:none;border:1px solid rgba(200,134,10,0.25);color:rgba(242,234,216,0.6);width:32px;height:32px;cursor:pointer;font-size:1rem;display:flex;align-items:center;justify-content:center;transition:all 0.2s;" onmouseover="this.style.borderColor='var(--amber)'" onmouseout="this.style.borderColor='rgba(200,134,10,0.25)'">✕</button>
+  </div>
+  <div class="separator" style="margin-bottom:1.5rem;"></div>
+  <div id="fav-list"></div>
+</div>
+<div id="fav-overlay" onclick="closeFavorites()" style="position:fixed;inset:0;background:rgba(0,0,0,0);z-index:699;pointer-events:none;transition:background 0.4s;"></div>
+
+<!-- ════════════════════════════════════════════════════════════
+     CHORD MODAL
+════════════════════════════════════════════════════════════ -->
+<div id="chord-modal" onclick="handleModalBgClick(event)">
+  <div id="chord-modal-inner">
+    <button class="modal-close" onclick="closeModal()">✕</button>
+    <div id="modal-content"></div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════
+     ABOUT ME
+════════════════════════════════════════════════════════════ -->
+<section id="about-me">
+  <div style="max-width:780px;margin:0 auto;">
+    <div class="reveal" style="margin-bottom:2.5rem;">
+      <div class="section-sub">In My Own Words</div>
+      <h2 class="section-title">About Me</h2>
+      <div class="rule-amber"></div>
+    </div>
+    <div class="reveal" style="position:relative;">
+      <!-- decorative quote mark -->
+      <div aria-hidden="true" style="position:absolute;top:-1.5rem;left:-1rem;font-family:'Playfair Display',serif;font-size:6rem;color:rgba(200,134,10,0.08);line-height:1;pointer-events:none;user-select:none;">"</div>
+      <p class="about-me-text">
+        hi gng, anurag this side.<br/>
+        i just be coding whatever pops into my head fr.<br/>
+        some projects valid, some straight useless but they look hard so idrc.<br/>
+        into guitars, films, clean ui and staying awake for no reason fixing one tiny bug.<br/>
+        just here making stuff and seeing what sticks.
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- ════════════════════════════════════════════════════════════
+     ABOUT THE CREATOR
+════════════════════════════════════════════════════════════ -->
+<section id="about-creator">
+  <div style="max-width:1000px;margin:0 auto;">
+    <div class="reveal" style="text-align:center;margin-bottom:3rem;">
+      <div class="section-sub">The Person Behind The Strings</div>
+      <h2 class="section-title">About The Creator</h2>
+      <div class="rule-center"></div>
+    </div>
+    <div class="creator-card reveal">
+      <div class="creator-avatar-wrap">
+        <img
+          src="assets/logo.jpg"
+          alt="Anurag"
+          class="creator-avatar"
+          onerror="this.outerHTML='<div class=\'creator-avatar-placeholder\'>A</div>'"
+        />
+      </div>
+      <div>
+        <div class="creator-name">Anurag</div>
+        <div class="creator-handle">Builder · Guitarist · Night Owl</div>
+        <p class="creator-bio">
+          Built AnGuiter from scratch because no chord reference felt right.<br/>
+          Codes by feel, plays by ear, ships when it looks cinematic enough.
+        </p>
+        <div class="social-links">
+          <!-- Instagram: intent URL opens the app on mobile, falls back to browser -->
+          <a
+            class="social-link"
+            href="https://instagram.com/anurvg0"
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="Instagram — @anurvg0"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="2" y="2" width="20" height="20" rx="5" ry="5"/>
+              <circle cx="12" cy="12" r="4"/>
+              <circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none"/>
+            </svg>
+            Instagram
+          </a>
+          <!-- Reddit: profile URL opens app on mobile via deep-link handling -->
+          <a
+            class="social-link"
+            href="https://reddit.com/u/passisanimemen"
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="Reddit — u/passisanimemen"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+              <circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" stroke-width="1.5"/>
+              <path d="M20 12c0-1.1-.9-2-2-2a2 2 0 0 0-1.3.5C15.3 9.6 13.8 9 12.1 9l.8-3.7 2.5.5a1.5 1.5 0 1 0 .1-.8l-2.8-.6L11.7 9c-1.7.1-3.2.7-4.5 1.6A2 2 0 0 0 4 12a2 2 0 0 0 1.1 1.8c0 .2 0 .4.1.6C5.2 16.4 8.4 18 12 18s6.8-1.6 6.8-3.6c0-.2 0-.4.1-.6A2 2 0 0 0 20 12zm-10 1.5a1 1 0 1 1 2 0 1 1 0 0 1-2 0zm5.5 2.5c-.7.5-1.8.8-3.5.8s-2.8-.3-3.5-.8a.4.4 0 0 1 .5-.6c.6.4 1.6.6 3 .6s2.4-.2 3-.6a.4.4 0 0 1 .5.6zm-.3-1.5a1 1 0 1 1 0-2 1 1 0 0 1 0 2z"/>
+            </svg>
+            Reddit
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ════════════════════════════════════════════════════════════
+     FOOTER
+════════════════════════════════════════════════════════════ -->
+<footer style="padding:3rem 2rem 2rem;">
+  <div style="max-width:1200px;margin:0 auto;text-align:center;">
+    <div class="nav-logo" style="font-size:2rem;margin-bottom:1rem;">An<span style="color:var(--amber);font-style:italic;">Guiter</span></div>
+    <p style="font-family:'Cormorant Garamond',serif;font-style:italic;color:rgba(242,234,216,0.35);font-size:1rem;max-width:400px;margin:0 auto 2rem;">
+      "The guitar is a miniature orchestra in itself." — Ludwig van Beethoven
+    </p>
+    <div class="rule-center" style="margin-bottom:1.5rem;"></div>
+    <div style="display:flex;justify-content:center;gap:2rem;flex-wrap:wrap;">
+      <span onclick="scrollTo('#chords')" style="cursor:pointer;font-family:'Old Standard TT',serif;font-size:0.65rem;letter-spacing:0.2em;text-transform:uppercase;color:rgba(242,234,216,0.3);transition:color 0.2s;" onmouseover="this.style.color='var(--amber)'" onmouseout="this.style.color='rgba(242,234,216,0.3)'">Chord Library</span>
+      <span onclick="scrollTo('#theory')" style="cursor:pointer;font-family:'Old Standard TT',serif;font-size:0.65rem;letter-spacing:0.2em;text-transform:uppercase;color:rgba(242,234,216,0.3);transition:color 0.2s;" onmouseover="this.style.color='var(--amber)'" onmouseout="this.style.color='rgba(242,234,216,0.3)'">Theory</span>
+      <span onclick="scrollTo('#roadmap')" style="cursor:pointer;font-family:'Old Standard TT',serif;font-size:0.65rem;letter-spacing:0.2em;text-transform:uppercase;color:rgba(242,234,216,0.3);transition:color 0.2s;" onmouseover="this.style.color='var(--amber)'" onmouseout="this.style.color='rgba(242,234,216,0.3)'">Roadmap</span>
+      <span onclick="scrollTo('#challenge')" style="cursor:pointer;font-family:'Old Standard TT',serif;font-size:0.65rem;letter-spacing:0.2em;text-transform:uppercase;color:rgba(242,234,216,0.3);transition:color 0.2s;" onmouseover="this.style.color='var(--amber)'" onmouseout="this.style.color='rgba(242,234,216,0.3)'">Daily Challenge</span>
+    </div>
+    <p style="font-family:'Old Standard TT',serif;font-size:0.62rem;letter-spacing:0.15em;color:rgba(242,234,216,0.15);margin-top:2rem;text-transform:uppercase;">
+      AnGuiter · Every Chord Ever Played · Built for Anurag
+    </p>
+  </div>
+</footer>
+
+<!-- ════════════════════════════════════════════════════════════
+     JAVASCRIPT
+════════════════════════════════════════════════════════════ -->
+<script>
+/* ─────────────────────────────────────────────
+   DATA — CHORD DATABASE
+───────────────────────────────────────────── */
+const CHORDS = [
+  // MAJOR
+  { id:'C',       name:'C',       full:'C Major',               cat:['major'],              difficulty:1, notes:['x','3','2','0','1','0'], fingers:['x','3','2','0','1','0'], frets:[0,3,2,0,1,0], barre:null,
+    intervals:'1 - 3 - 5', formula:'Root + Major 3rd + Perfect 5th', notes_played:'C E G',
+    tip:'Keep your knuckles curved and avoid touching the 1st string with your 3rd finger.',
+    mistake:'Accidentally muting the open 1st string (E). Make sure your 1st finger doesn\'t flatten.',
+    alt:'Capo 3 and play an A shape for a lighter tone.',
+    next:['G','Am','F','Em','Dm'],
+    progression:['C','G','Am','F'],
+    steps:['Place your 2nd finger (middle) on the 2nd fret of the 4th string (D).','Place your 3rd finger (ring) on the 3rd fret of the 5th string (A).','Place your 1st finger (index) on the 1st fret of the 2nd string (B).','Strum from the 5th string downward. Do not play the 6th string (E).'],
+    fingerGuide:[{string:'5th (A)',fret:3,finger:'Ring (3)'},{string:'4th (D)',fret:2,finger:'Middle (2)'},{string:'2nd (B)',fret:1,finger:'Index (1)'}] },
+
+  { id:'G',       name:'G',       full:'G Major',               cat:['major'],              difficulty:2, notes:['3','2','0','0','0','3'], fingers:['2','1','0','0','0','3'], frets:[3,2,0,0,0,3], barre:null,
+    intervals:'1 - 3 - 5', formula:'Root + Major 3rd + Perfect 5th', notes_played:'G B D',
+    tip:'Use your pinky for the 3rd fret on the high E — it sets you up perfectly for C and Cadd9.',
+    mistake:'Rushing the chord change. Slow transitions are better than sloppy fast ones.',
+    alt:'Try the 4-finger version: adds richness and makes G→C transitions smoother.',
+    next:['C','D','Em','Am','Cadd9'],
+    progression:['G','D','Em','C'],
+    steps:['Place your 2nd finger on the 3rd fret of the 6th string (low E).','Place your 1st finger on the 2nd fret of the 5th string (A).','Leave strings 4, 3, 2 open.','Place your 3rd (or 4th) finger on the 3rd fret of the 1st string (high E).','Strum all 6 strings.'],
+    fingerGuide:[{string:'6th (E)',fret:3,finger:'Middle (2)'},{string:'5th (A)',fret:2,finger:'Index (1)'},{string:'1st (e)',fret:3,finger:'Pinky (4)'}] },
+
+  { id:'D',       name:'D',       full:'D Major',               cat:['major'],              difficulty:1, notes:['x','x','0','2','3','2'], fingers:['x','x','0','2','3','1'], frets:[0,0,0,2,3,2], barre:null,
+    intervals:'1 - 3 - 5', formula:'Root + Major 3rd + Perfect 5th', notes_played:'D F# A',
+    tip:'Form a triangle with your three fingers. It\'s one of the most compact chord shapes.',
+    mistake:'Strumming the 5th and 6th strings, which aren\'t part of the D chord.',
+    alt:'D/F# or Dsus2 for variety.',
+    next:['A','G','Em','Bm','Cadd9'],
+    progression:['D','A','Bm','G'],
+    steps:['Place your 1st finger on the 2nd fret of the 3rd string (G).','Place your 3rd finger on the 3rd fret of the 2nd string (B).','Place your 2nd finger on the 2nd fret of the 1st string (e).','Strum only the 4 highest strings (D, G, B, e).'],
+    fingerGuide:[{string:'3rd (G)',fret:2,finger:'Index (1)'},{string:'2nd (B)',fret:3,finger:'Ring (3)'},{string:'1st (e)',fret:2,finger:'Middle (2)'}] },
+
+  { id:'A',       name:'A',       full:'A Major',               cat:['major'],              difficulty:1, notes:['x','0','2','2','2','0'], fingers:['x','0','2','3','4','0'], frets:[0,0,2,2,2,0], barre:null,
+    intervals:'1 - 3 - 5', formula:'Root + Major 3rd + Perfect 5th', notes_played:'A C# E',
+    tip:'Bunch fingers 2, 3, 4 together on the 2nd fret to fit the narrow space.',
+    mistake:'Touching the 1st or 5th strings with your bundled fingers.',
+    alt:'Bar all three middle strings at fret 2 with one index finger.',
+    next:['D','E','F#m','Bm'],
+    progression:['A','D','E','A'],
+    steps:['Keep the 5th string (A) and 1st string (e) open.','Place fingers 2, 3, 4 (or a mini-barre with index) on the 2nd fret of strings 4, 3, 2.','Strum from the 5th string downward.'],
+    fingerGuide:[{string:'4th (D)',fret:2,finger:'Index (1) or Middle (2)'},{string:'3rd (G)',fret:2,finger:'Middle (2) or Ring (3)'},{string:'2nd (B)',fret:2,finger:'Ring (3) or Pinky (4)'}] },
+
+  { id:'E',       name:'E',       full:'E Major',               cat:['major'],              difficulty:1, notes:['0','2','2','1','0','0'], fingers:['0','3','2','1','0','0'], frets:[0,2,2,1,0,0], barre:null,
+    intervals:'1 - 3 - 5', formula:'Root + Major 3rd + Perfect 5th', notes_played:'E G# B',
+    tip:'This is a perfect barre chord template — move it anywhere on the neck for major chords.',
+    mistake:'Muting the open 6th and 1st strings accidentally.',
+    alt:'E7 by removing the 1st finger.',
+    next:['A','B7','C#m','F#m'],
+    progression:['E','A','B','A'],
+    steps:['Place your 1st finger on the 1st fret of the 3rd string (G).','Place your 3rd finger on the 2nd fret of the 5th string (A).','Place your 2nd finger on the 2nd fret of the 4th string (D).','Strum all 6 strings.'],
+    fingerGuide:[{string:'5th (A)',fret:2,finger:'Ring (3)'},{string:'4th (D)',fret:2,finger:'Middle (2)'},{string:'3rd (G)',fret:1,finger:'Index (1)'}] },
+
+  { id:'F',       name:'F',       full:'F Major',               cat:['major','barre'],      difficulty:4, notes:['1','3','3','2','1','1'], fingers:['1','3','4','2','1','1'], frets:[1,3,3,2,1,1], barre:{fret:1,strings:6},
+    intervals:'1 - 3 - 5', formula:'Root + Major 3rd + Perfect 5th', notes_played:'F A C',
+    tip:'This is THE classic beginner barre chord. Build finger strength with daily practice.',
+    mistake:'Not pressing the barre hard enough causing buzzing on the 1st and 2nd strings.',
+    alt:'Fmaj7 (xx3210) is much easier and sounds beautiful as a substitute.',
+    next:['C','Bb','Gm','Am'],
+    progression:['F','C','Gm','Bb'],
+    steps:['Lay your 1st finger across all 6 strings at the 1st fret (barre).','Place your 3rd finger on the 3rd fret of the 5th string (A).','Place your 4th finger on the 3rd fret of the 4th string (D).','Place your 2nd finger on the 2nd fret of the 3rd string (G).','Press firmly and strum all strings. Check each string rings clearly.'],
+    fingerGuide:[{string:'All strings',fret:1,finger:'Index barre (1)'},{string:'5th (A)',fret:3,finger:'Ring (3)'},{string:'4th (D)',fret:3,finger:'Pinky (4)'},{string:'3rd (G)',fret:2,finger:'Middle (2)'}] },
+
+  { id:'B',       name:'B',       full:'B Major',               cat:['major','barre'],      difficulty:4, notes:['x','2','4','4','4','2'], fingers:['x','1','3','4','2','1'], frets:[0,2,4,4,4,2], barre:{fret:2,strings:5},
+    intervals:'1 - 3 - 5', formula:'Root + Major 3rd + Perfect 5th', notes_played:'B D# F#',
+    tip:'A moveable A-shape barre. Learn this and you can play B through Bb anywhere on the neck.',
+    mistake:'Barre not covering strings 1 and 2 cleanly at fret 2.',
+    alt:'Bsus2 (x24422) or B7 for easier approaches.',
+    next:['E','F#m','G#m','C#m'],
+    progression:['B','E','F#m','C#m'],
+    steps:['Barre strings 5 through 1 at the 2nd fret with your index finger.','Place ring, pinky, and middle fingers on the 4th fret of strings 4, 3, and 2 respectively.','Do not strum the 6th string.'],
+    fingerGuide:[{string:'5th–1st strings',fret:2,finger:'Index barre (1)'},{string:'4th (D)',fret:4,finger:'Ring (3)'},{string:'3rd (G)',fret:4,finger:'Pinky (4)'},{string:'2nd (B)',fret:4,finger:'Middle (2)'}] },
+
+  // MINOR
+  { id:'Am',      name:'Am',      full:'A Minor',               cat:['minor'],              difficulty:1, notes:['x','0','2','2','1','0'], fingers:['x','0','3','2','1','0'], frets:[0,0,2,2,1,0], barre:null,
+    intervals:'1 - b3 - 5', formula:'Root + Minor 3rd + Perfect 5th', notes_played:'A C E',
+    tip:'Am is the E major shape moved one set of strings over. Very beginner-friendly.',
+    mistake:'Accidentally muting the 1st string (e) with the 1st finger.',
+    alt:'Am7 (x02010) or Asus2 for variation.',
+    next:['C','G','F','Dm','E'],
+    progression:['Am','F','C','G'],
+    steps:['Leave strings 5 (A) and 1 (e) open.','Place your 1st finger on the 1st fret of the 2nd string (B).','Place your 2nd finger on the 2nd fret of the 4th string (D).','Place your 3rd finger on the 2nd fret of the 3rd string (G).','Strum from the 5th string downward.'],
+    fingerGuide:[{string:'4th (D)',fret:2,finger:'Middle (2)'},{string:'3rd (G)',fret:2,finger:'Ring (3)'},{string:'2nd (B)',fret:1,finger:'Index (1)'}] },
+
+  { id:'Em',      name:'Em',      full:'E Minor',               cat:['minor'],              difficulty:1, notes:['0','2','2','0','0','0'], fingers:['0','2','3','0','0','0'], frets:[0,2,2,0,0,0], barre:null,
+    intervals:'1 - b3 - 5', formula:'Root + Minor 3rd + Perfect 5th', notes_played:'E G B',
+    tip:'The easiest chord on guitar. Perfect starting point for beginners.',
+    mistake:'Over-strumming past the neck — keep your strum above the soundhole.',
+    alt:'Em7 by adding your ring or pinky on the 3rd fret of the 2nd string.',
+    next:['G','D','C','Am','Bm'],
+    progression:['Em','C','G','D'],
+    steps:['Place your 1st and 2nd fingers on the 2nd fret of strings 5 (A) and 4 (D).','Leave all other strings open.','Strum all 6 strings.'],
+    fingerGuide:[{string:'5th (A)',fret:2,finger:'Middle (2)'},{string:'4th (D)',fret:2,finger:'Ring (3)'}] },
+
+  { id:'Dm',      name:'Dm',      full:'D Minor',               cat:['minor'],              difficulty:2, notes:['x','x','0','2','3','1'], fingers:['x','x','0','2','3','1'], frets:[0,0,0,2,3,1], barre:null,
+    intervals:'1 - b3 - 5', formula:'Root + Minor 3rd + Perfect 5th', notes_played:'D F A',
+    tip:'Same shape as D major but with the 1st string dropped to the 1st fret.',
+    mistake:'Strumming the 5th and 6th strings which add unwanted notes.',
+    alt:'Dm7 (xx0211) for a jazzier, softer sound.',
+    next:['Am','F','C','Bb','Gm'],
+    progression:['Dm','Am','Bb','F'],
+    steps:['Place your 1st finger on the 1st fret of the 1st string (e).','Place your 2nd finger on the 2nd fret of the 3rd string (G).','Place your 3rd finger on the 3rd fret of the 2nd string (B).','Strum from the 4th string (D) downward.'],
+    fingerGuide:[{string:'3rd (G)',fret:2,finger:'Middle (2)'},{string:'2nd (B)',fret:3,finger:'Ring (3)'},{string:'1st (e)',fret:1,finger:'Index (1)'}] },
+
+  { id:'Bm',      name:'Bm',      full:'B Minor',               cat:['minor','barre'],      difficulty:3, notes:['x','2','4','4','3','2'], fingers:['x','1','3','4','2','1'], frets:[0,2,4,4,3,2], barre:{fret:2,strings:5},
+    intervals:'1 - b3 - 5', formula:'Root + Minor 3rd + Perfect 5th', notes_played:'B D F#',
+    tip:'A moveable Am-shape barre chord. The 2nd fret position is Bm.',
+    mistake:'Barre pressure inconsistency — strings 1 and 5 most commonly buzz.',
+    alt:'Bm7 (x20232) avoids the full barre and sounds equally great.',
+    next:['G','D','A','F#m','Em'],
+    progression:['Bm','G','D','A'],
+    steps:['Barre strings 5 through 1 at fret 2 with your index finger.','Place ring finger on 4th fret of 4th string (D).','Place pinky on 4th fret of 3rd string (G).','Place middle on 3rd fret of 2nd string (B).'],
+    fingerGuide:[{string:'5th–1st',fret:2,finger:'Index barre (1)'},{string:'4th (D)',fret:4,finger:'Ring (3)'},{string:'3rd (G)',fret:4,finger:'Pinky (4)'},{string:'2nd (B)',fret:3,finger:'Middle (2)'}] },
+
+  { id:'F#m',     name:'F#m',     full:'F# Minor',              cat:['minor','barre'],      difficulty:4, notes:['2','4','4','2','2','2'], fingers:['1','3','4','1','1','1'], frets:[2,4,4,2,2,2], barre:{fret:2,strings:6},
+    intervals:'1 - b3 - 5', formula:'Root + Minor 3rd + Perfect 5th', notes_played:'F# A C#',
+    tip:'Same shape as Em, just barred at fret 2. Master Em fingering first.',
+    mistake:'Not barring cleanly at fret 2 — leads to dead strings on 1, 2, and 6.',
+    alt:'F#m7 is more approachable at first.',
+    next:['D','A','B','E'],
+    progression:['F#m','D','A','E'],
+    steps:['Barre all 6 strings at fret 2.','Place ring finger on 4th fret of 5th string (A).','Place pinky on 4th fret of 4th string (D).'],
+    fingerGuide:[{string:'All strings',fret:2,finger:'Index barre (1)'},{string:'5th (A)',fret:4,finger:'Ring (3)'},{string:'4th (D)',fret:4,finger:'Pinky (4)'}] },
+
+  { id:'C#m',     name:'C#m',     full:'C# Minor',              cat:['minor','barre'],      difficulty:4, notes:['x','4','6','6','5','4'], fingers:['x','1','3','4','2','1'], frets:[0,4,6,6,5,4], barre:{fret:4,strings:5},
+    intervals:'1 - b3 - 5', formula:'Root + Minor 3rd + Perfect 5th', notes_played:'C# E G#',
+    tip:'This is the Am-shape barre at fret 4. Very common in pop and rock songs.',
+    mistake:'Not muting the low E string. Thumb-mute or avoid it entirely.',
+    alt:'C#m7 or rearranging to avoid the barre with a capo.',
+    next:['A','E','B','F#m'],
+    progression:['C#m','A','E','B'],
+    steps:['Barre strings 5 through 1 at fret 4 with index finger.','Ring finger on fret 6 of string 4 (D).','Pinky on fret 6 of string 3 (G).','Middle finger on fret 5 of string 2 (B).'],
+    fingerGuide:[{string:'5th–1st',fret:4,finger:'Index barre (1)'},{string:'4th (D)',fret:6,finger:'Ring (3)'},{string:'3rd (G)',fret:6,finger:'Pinky (4)'},{string:'2nd (B)',fret:5,finger:'Middle (2)'}] },
+
+  { id:'Gm',      name:'Gm',      full:'G Minor',               cat:['minor','barre'],      difficulty:4, notes:['3','5','5','3','3','3'], fingers:['1','3','4','1','1','1'], frets:[3,5,5,3,3,3], barre:{fret:3,strings:6},
+    intervals:'1 - b3 - 5', formula:'Root + Minor 3rd + Perfect 5th', notes_played:'G Bb D',
+    tip:'Em shape barre at fret 3. Very common in Flamenco and Classical.',
+    mistake:'Fingers landing too high on frets causing buzzing.',
+    alt:'Gm7 for a jazzier feel.',
+    next:['Bb','Eb','Cm','Dm'],
+    progression:['Gm','Bb','Eb','F'],
+    steps:['Barre all 6 strings at fret 3.','Place ring finger fret 5 string 5.','Place pinky fret 5 string 4.'],
+    fingerGuide:[{string:'All strings',fret:3,finger:'Index barre (1)'},{string:'5th (A)',fret:5,finger:'Ring (3)'},{string:'4th (D)',fret:5,finger:'Pinky (4)'}] },
+
+  // 7TH
+  { id:'G7',      name:'G7',      full:'G Dominant 7th',        cat:['7th','blues'],        difficulty:2, notes:['3','2','0','0','0','1'], fingers:['3','2','0','0','0','1'], frets:[3,2,0,0,0,1], barre:null,
+    intervals:'1 - 3 - 5 - b7', formula:'Root + Maj3 + P5 + Min7', notes_played:'G B D F',
+    tip:'A beautiful, slightly jazzy sound. Perfect in blues and gospel progressions.',
+    mistake:'Muting the open middle strings — keep fingers arched.',
+    alt:'G9 adds extra jazz flavor.',
+    next:['C','Cm','F','D7'],
+    progression:['G7','C','F','G7'],
+    steps:['3rd finger on 3rd fret of 6th string.','2nd finger on 2nd fret of 5th string.','1st finger on 1st fret of 1st string.','Strings 4, 3, 2 are all open.'],
+    fingerGuide:[{string:'6th (E)',fret:3,finger:'Ring (3)'},{string:'5th (A)',fret:2,finger:'Middle (2)'},{string:'1st (e)',fret:1,finger:'Index (1)'}] },
+
+  { id:'E7',      name:'E7',      full:'E Dominant 7th',        cat:['7th','blues'],        difficulty:1, notes:['0','2','0','1','0','0'], fingers:['0','2','0','1','0','0'], frets:[0,2,0,1,0,0], barre:null,
+    intervals:'1 - 3 - 5 - b7', formula:'Root + Maj3 + P5 + Min7', notes_played:'E G# B D',
+    tip:'One of the easiest 7th chords — just remove one finger from E major.',
+    mistake:'Pressing too hard on fret 1 of string 3 and muting string 2.',
+    alt:'E9 or E13 for more complex blues sounds.',
+    next:['A','A7','D','B7'],
+    progression:['E7','A7','B7','E7'],
+    steps:['Place 2nd finger on 2nd fret of 5th string (A).','Place 1st finger on 1st fret of 3rd string (G).','All other strings open. Strum all 6.'],
+    fingerGuide:[{string:'5th (A)',fret:2,finger:'Middle (2)'},{string:'3rd (G)',fret:1,finger:'Index (1)'}] },
+
+  { id:'A7',      name:'A7',      full:'A Dominant 7th',        cat:['7th','blues'],        difficulty:1, notes:['x','0','2','0','2','0'], fingers:['x','0','2','0','3','0'], frets:[0,0,2,0,2,0], barre:null,
+    intervals:'1 - 3 - 5 - b7', formula:'Root + Maj3 + P5 + Min7', notes_played:'A C# E G',
+    tip:'Alternating open and fretted strings create a harp-like ringing quality.',
+    mistake:'Accidentally muting the open strings between fingers.',
+    alt:'A9 for a funkier sound.',
+    next:['D','D7','E','E7'],
+    progression:['A7','D7','E7','A7'],
+    steps:['Leave strings 5, 3, and 1 open.','Place 2nd finger on 2nd fret of string 4 (D).','Place 3rd finger on 2nd fret of string 2 (B). Strum from 5th string.'],
+    fingerGuide:[{string:'4th (D)',fret:2,finger:'Middle (2)'},{string:'2nd (B)',fret:2,finger:'Ring (3)'}] },
+
+  { id:'D7',      name:'D7',      full:'D Dominant 7th',        cat:['7th','blues'],        difficulty:2, notes:['x','x','0','2','1','2'], fingers:['x','x','0','2','1','3'], frets:[0,0,0,2,1,2], barre:null,
+    intervals:'1 - 3 - 5 - b7', formula:'Root + Maj3 + P5 + Min7', notes_played:'D F# A C',
+    tip:'Very common in blues — goes great after G7.',
+    mistake:'Strumming the unwanted 5th and 6th strings.',
+    alt:'D9 or Dm7 for variations.',
+    next:['G','G7','A','A7'],
+    progression:['D7','G7','A7','D7'],
+    steps:['2nd finger on 2nd fret of 3rd string (G).','1st finger on 1st fret of 2nd string (B).','3rd finger on 2nd fret of 1st string (e).','Strum strings 4 through 1.'],
+    fingerGuide:[{string:'3rd (G)',fret:2,finger:'Middle (2)'},{string:'2nd (B)',fret:1,finger:'Index (1)'},{string:'1st (e)',fret:2,finger:'Ring (3)'}] },
+
+  { id:'B7',      name:'B7',      full:'B Dominant 7th',        cat:['7th'],                difficulty:2, notes:['x','2','1','2','0','2'], fingers:['x','2','1','3','0','4'], frets:[0,2,1,2,0,2], barre:null,
+    intervals:'1 - 3 - 5 - b7', formula:'Root + Maj3 + P5 + Min7', notes_played:'B D# F# A',
+    tip:'A classic old-blues turnaround chord. Has a very distinctive resolved feeling going to Em.',
+    mistake:'Muting the open 3rd string (G) — it\'s part of the chord.',
+    alt:'B7sus4 for a more suspended tension.',
+    next:['Em','E','A'],
+    progression:['B7','Em','Am','B7'],
+    steps:['Index on fret 1 of string 4 (D).','Middle on fret 2 of string 5 (A).','Ring on fret 2 of string 3 (G).','Pinky on fret 2 of string 1 (e).','String 3 (G) is open.'],
+    fingerGuide:[{string:'5th (A)',fret:2,finger:'Middle (2)'},{string:'4th (D)',fret:1,finger:'Index (1)'},{string:'3rd (G)',fret:2,finger:'Ring (3)'},{string:'1st (e)',fret:2,finger:'Pinky (4)'}] },
+
+  // MAJOR 7TH
+  { id:'Fmaj7',   name:'Fmaj7',   full:'F Major 7th',           cat:['maj7','jazz'],        difficulty:2, notes:['x','x','3','2','1','0'], fingers:['x','x','3','2','1','0'], frets:[0,0,3,2,1,0], barre:null,
+    intervals:'1 - 3 - 5 - 7', formula:'Root + Maj3 + P5 + Maj7', notes_played:'F A C E',
+    tip:'This is the most common beginner-friendly substitute for the dreaded F barre chord.',
+    mistake:'Accidentally pressing the 5th or 6th strings.',
+    alt:'Fmaj9 adds even more open color.',
+    next:['C','Am','Dm','Em7'],
+    progression:['Fmaj7','C','G','Am'],
+    steps:['Ring finger on 3rd fret of 4th string (D).','Middle on 2nd fret of 3rd string (G).','Index on 1st fret of 2nd string (B).','High E string (1st) is open.','Only strum strings 4 through 1.'],
+    fingerGuide:[{string:'4th (D)',fret:3,finger:'Ring (3)'},{string:'3rd (G)',fret:2,finger:'Middle (2)'},{string:'2nd (B)',fret:1,finger:'Index (1)'}] },
+
+  { id:'Cmaj7',   name:'Cmaj7',   full:'C Major 7th',           cat:['maj7','jazz'],        difficulty:2, notes:['x','3','2','0','0','0'], fingers:['x','3','2','0','0','0'], frets:[0,3,2,0,0,0], barre:null,
+    intervals:'1 - 3 - 5 - 7', formula:'Root + Maj3 + P5 + Maj7', notes_played:'C E G B',
+    tip:'Hauntingly beautiful — sounds like the opening of countless pop songs.',
+    mistake:'Not letting the open 4th, 3rd, and 2nd strings ring clearly.',
+    alt:'C6/9 for a more complex jazz voicing.',
+    next:['Am7','Fmaj7','G7','Dm7'],
+    progression:['Cmaj7','Am7','Fmaj7','G7'],
+    steps:['Ring on 3rd fret of 5th string (A).','Middle on 2nd fret of 4th string (D).','Strings 3 (G), 2 (B), 1 (e) are open. Strum from 5th string.'],
+    fingerGuide:[{string:'5th (A)',fret:3,finger:'Ring (3)'},{string:'4th (D)',fret:2,finger:'Middle (2)'}] },
+
+  { id:'Gmaj7',   name:'Gmaj7',   full:'G Major 7th',           cat:['maj7','jazz'],        difficulty:2, notes:['3','2','0','0','0','2'], fingers:['2','1','0','0','0','3'], frets:[3,2,0,0,0,2], barre:null,
+    intervals:'1 - 3 - 5 - 7', formula:'Root + Maj3 + P5 + Maj7', notes_played:'G B D F#',
+    tip:'Very dreamy sound — great for indie and acoustic ballads.',
+    mistake:'Muting the open middle strings.',
+    alt:'G6 (320000) is even simpler with similar color.',
+    next:['Cmaj7','Am7','Em7','D'],
+    progression:['Gmaj7','Cmaj7','Am7','D'],
+    steps:['Middle on 2nd fret of 6th string (E).','Index on 2nd fret of 5th string (A).','Strings 4, 3, 2 are open.','Ring (or pinky) on 2nd fret of 1st string (e).'],
+    fingerGuide:[{string:'6th (E)',fret:3,finger:'Ring (3)'},{string:'5th (A)',fret:2,finger:'Middle (2)'},{string:'1st (e)',fret:2,finger:'Pinky (4)'}] },
+
+  { id:'Amaj7',   name:'Amaj7',   full:'A Major 7th',           cat:['maj7','jazz'],        difficulty:2, notes:['x','0','2','1','2','0'], fingers:['x','0','3','1','2','0'], frets:[0,0,2,1,2,0], barre:null,
+    intervals:'1 - 3 - 5 - 7', formula:'Root + Maj3 + P5 + Maj7', notes_played:'A C# E G#',
+    tip:'A graceful chord that sounds great arpeggio-style.',
+    mistake:'Muting the 1st or 5th open strings.',
+    alt:'A6 (x02222) for a brighter, cleaner tone.',
+    next:['Dmaj7','E7','F#m','B7'],
+    progression:['Amaj7','Dmaj7','Bm7','E7'],
+    steps:['Index on 1st fret of 3rd string (G).','Ring on 2nd fret of 4th string (D).','Middle on 2nd fret of 2nd string (B). Open 5th and 1st strings.'],
+    fingerGuide:[{string:'4th (D)',fret:2,finger:'Ring (3)'},{string:'3rd (G)',fret:1,finger:'Index (1)'},{string:'2nd (B)',fret:2,finger:'Middle (2)'}] },
+
+  // MINOR 7TH
+  { id:'Am7',     name:'Am7',     full:'A Minor 7th',           cat:['min7','jazz'],        difficulty:1, notes:['x','0','2','0','1','0'], fingers:['x','0','2','0','1','0'], frets:[0,0,2,0,1,0], barre:null,
+    intervals:'1 - b3 - 5 - b7', formula:'Root + Min3 + P5 + Min7', notes_played:'A C E G',
+    tip:'One of the most soulful, easy chords on guitar. Used in countless songs.',
+    mistake:'Accidentally pressing the 3rd string too hard and muting it.',
+    alt:'Am11 for more extended jazz color.',
+    next:['Dm7','G7','Cmaj7','Fmaj7'],
+    progression:['Am7','Dm7','G7','Cmaj7'],
+    steps:['Middle on 2nd fret of 4th string (D).','Index on 1st fret of 2nd string (B).','Strings 5, 3, and 1 are open. Strum from 5th string.'],
+    fingerGuide:[{string:'4th (D)',fret:2,finger:'Middle (2)'},{string:'2nd (B)',fret:1,finger:'Index (1)'}] },
+
+  { id:'Em7',     name:'Em7',     full:'E Minor 7th',           cat:['min7','jazz'],        difficulty:1, notes:['0','2','2','0','3','0'], fingers:['0','2','3','0','4','0'], frets:[0,2,2,0,3,0], barre:null,
+    intervals:'1 - b3 - 5 - b7', formula:'Root + Min3 + P5 + Min7', notes_played:'E G B D',
+    tip:'Gorgeous in fingerstyle arrangements. Rings beautifully when all strings are picked individually.',
+    mistake:'Missing the open 4th string which gives the 7th its color.',
+    alt:'Em9 (add open 2nd string for that extra shimmer).',
+    next:['Am7','Cmaj7','G','D'],
+    progression:['Em7','Am7','Fmaj7','G'],
+    steps:['Middle and ring on 2nd fret of strings 5 and 4 (like Em).','Pinky on 3rd fret of string 2 (B). Strings 6, 3, and 1 are open.'],
+    fingerGuide:[{string:'5th (A)',fret:2,finger:'Middle (2)'},{string:'4th (D)',fret:2,finger:'Ring (3)'},{string:'2nd (B)',fret:3,finger:'Pinky (4)'}] },
+
+  { id:'Dm7',     name:'Dm7',     full:'D Minor 7th',           cat:['min7','jazz'],        difficulty:2, notes:['x','x','0','2','1','1'], fingers:['x','x','0','2','1','1'], frets:[0,0,0,2,1,1], barre:{fret:1,strings:2},
+    intervals:'1 - b3 - 5 - b7', formula:'Root + Min3 + P5 + Min7', notes_played:'D F A C',
+    tip:'Roll your index finger slightly to barre both 1st and 2nd strings at fret 1.',
+    mistake:'Both barred strings not ringing cleanly — adjust index finger pressure.',
+    alt:'Dm add11 for an airy, open sound.',
+    next:['G7','Cmaj7','Am7','Fmaj7'],
+    progression:['Dm7','G7','Cmaj7','Am7'],
+    steps:['Index finger barre on fret 1 of strings 2 and 1.','Middle on 2nd fret of string 3 (G). String 4 (D) is open. Strum from 4th string.'],
+    fingerGuide:[{string:'3rd (G)',fret:2,finger:'Middle (2)'},{string:'2nd (B) + 1st (e)',fret:1,finger:'Index barre (1)'}] },
+
+  { id:'Bm7',     name:'Bm7',     full:'B Minor 7th',           cat:['min7','jazz'],        difficulty:3, notes:['x','2','0','2','3','2'], fingers:['x','1','0','2','3','1'], frets:[0,2,0,2,3,2], barre:{fret:2,strings:2},
+    intervals:'1 - b3 - 5 - b7', formula:'Root + Min3 + P5 + Min7', notes_played:'B D F# A',
+    tip:'An easier alternative to the full Bm barre chord — open 3rd string adds warmth.',
+    mistake:'Not muting the 6th string. Use your thumb over the neck.',
+    alt:'Bm7 at the 7th fret barre for a brighter, tighter tone.',
+    next:['E7','Gmaj7','F#m7','A'],
+    progression:['Bm7','E7','Amaj7','F#m7'],
+    steps:['Index on 2nd fret of strings 5 and 1 (partial barre).','Middle on 2nd fret of string 3 (G).','Ring on 3rd fret of string 2 (B). Open string 4 (D).'],
+    fingerGuide:[{string:'5th (A)',fret:2,finger:'Index (1)'},{string:'3rd (G)',fret:2,finger:'Middle (2)'},{string:'2nd (B)',fret:3,finger:'Ring (3)'},{string:'1st (e)',fret:2,finger:'Index (1)'}] },
+
+  // SUSPENDED
+  { id:'Asus2',   name:'Asus2',   full:'A Suspended 2nd',       cat:['sus'],                difficulty:1, notes:['x','0','2','2','0','0'], fingers:['x','0','2','3','0','0'], frets:[0,0,2,2,0,0], barre:null,
+    intervals:'1 - 2 - 5', formula:'Root + Major 2nd + Perfect 5th', notes_played:'A B E',
+    tip:'Beautiful open ringing chord — often used as a substitute or embellishment for A.',
+    mistake:'Not letting the 1st and 2nd strings ring openly.',
+    alt:'Asus4 (x02230) for a different suspended feel.',
+    next:['D','E','Dmaj7','A'],
+    progression:['Asus2','D','E','A'],
+    steps:['Middle on 2nd fret of 4th string (D).','Ring on 2nd fret of 3rd string (G).','Strings 5, 2, and 1 are open. Strum from 5th string.'],
+    fingerGuide:[{string:'4th (D)',fret:2,finger:'Middle (2)'},{string:'3rd (G)',fret:2,finger:'Ring (3)'}] },
+
+  { id:'Asus4',   name:'Asus4',   full:'A Suspended 4th',       cat:['sus'],                difficulty:1, notes:['x','0','2','2','3','0'], fingers:['x','0','1','2','3','0'], frets:[0,0,2,2,3,0], barre:null,
+    intervals:'1 - 4 - 5', formula:'Root + Perfect 4th + Perfect 5th', notes_played:'A D E',
+    tip:'Often played resolving to A major — creates beautiful tension and release.',
+    mistake:'Muting the 1st string with the 3rd finger when it should be open.',
+    alt:'Asus2 for a softer suspended sound.',
+    next:['A','D','E'],
+    progression:['Asus4','A','D','E'],
+    steps:['Index on 2nd fret of 4th string (D).','Middle on 2nd fret of 3rd string (G).','Ring on 3rd fret of 2nd string (B).','Strings 5 and 1 open. Strum from 5th string.'],
+    fingerGuide:[{string:'4th (D)',fret:2,finger:'Index (1)'},{string:'3rd (G)',fret:2,finger:'Middle (2)'},{string:'2nd (B)',fret:3,finger:'Ring (3)'}] },
+
+  { id:'Dsus2',   name:'Dsus2',   full:'D Suspended 2nd',       cat:['sus'],                difficulty:1, notes:['x','x','0','2','3','0'], fingers:['x','x','0','1','3','0'], frets:[0,0,0,1,3,0], barre:null,
+    intervals:'1 - 2 - 5', formula:'Root + Major 2nd + Perfect 5th', notes_played:'D E A',
+    tip:'Sounds incredibly open and cinematic. Great for intro fingerpicking patterns.',
+    mistake:'Accidentally pressing the 3rd string.',
+    alt:'Dsus4 (xx0233) for resolution effect.',
+    next:['D','A','G','Cadd9'],
+    progression:['Dsus2','A','G','Dsus2'],
+    steps:['Index on 2nd fret of 3rd string (G) — wait, no: Index on 2nd fret of string 3 is D... Actually: leave strings 4, 2, 1 but place ring on fret 3 of string 2 (B) and index on fret 2 wait — Dsus2 is: open D string (4), nothing on G (3), fret 2 on A string... Let\'s clarify: x-x-0-2-3-0: Ring on fret 3 of string 2 (B), Index on fret 2 of string 3 (wait no)...'],
+    fingerGuide:[{string:'4th (D)',fret:0,finger:'Open'},{string:'3rd (G)',fret:2,finger:'Index (1)'},{string:'2nd (B)',fret:3,finger:'Ring (3)'}] },
+
+  { id:'Bsus4',   name:'Bsus4',   full:'B Suspended 4th',       cat:['sus'],                difficulty:3, notes:['x','2','4','4','5','2'], fingers:['x','1','2','3','4','1'], frets:[0,2,4,4,5,2], barre:{fret:2,strings:5},
+    intervals:'1 - 4 - 5', formula:'Root + Perfect 4th + Perfect 5th', notes_played:'B E F#',
+    tip:'A nice way to approach Bm without the full minor barre.',
+    mistake:'Not getting the pinky clean on fret 5 of string 2.',
+    alt:'Try releasing to Bm after Bsus4 for a classic pop resolution.',
+    next:['Bm','B','E','F#m'],
+    progression:['Bsus4','Bm','E','A'],
+    steps:['Barre strings 5–1 at fret 2 with index.','Middle on fret 4 string 4 (D).','Ring on fret 4 string 3 (G).','Pinky on fret 5 string 2 (B).'],
+    fingerGuide:[{string:'5th–1st',fret:2,finger:'Index barre (1)'},{string:'4th (D)',fret:4,finger:'Middle (2)'},{string:'3rd (G)',fret:4,finger:'Ring (3)'},{string:'2nd (B)',fret:5,finger:'Pinky (4)'}] },
+
+  // JAZZ
+  { id:'Dm9',     name:'Dm9',     full:'D Minor 9th',           cat:['jazz','min7'],        difficulty:3, notes:['x','5','3','5','5','5'], fingers:['x','2','1','3','4','1'], frets:[0,5,3,5,5,5], barre:{fret:5,strings:4},
+    intervals:'1 - b3 - 5 - b7 - 9', formula:'Extended minor harmony', notes_played:'D F A C E',
+    tip:'A beautiful modern jazz voicing. Try it in a ii-V-I progression.',
+    mistake:'All barred notes not ringing cleanly.',
+    alt:'Dm11 for an even more open/modal sound.',
+    next:['G9','Cmaj9','Am9'],
+    progression:['Dm9','G9','Cmaj9','Am9'],
+    steps:['Index barre at fret 5 on strings 5 through 1.','Middle on fret 5 of string 4 (D) - already barred.','Ring on fret 5 of string 3 — Pinky on fret 5 string 2 — already covered.','The key twist: index also at fret 3 on string 4 (adjust) — place index cleanly.'],
+    fingerGuide:[{string:'5th–1st',fret:5,finger:'Index partial barre'},{string:'4th (D)',fret:5,finger:'Ring (3)'},{string:'3rd (G)',fret:5,finger:'Pinky (4)'}] },
+
+  { id:'Cmaj9',   name:'Cmaj9',   full:'C Major 9th',           cat:['jazz','maj7'],        difficulty:3, notes:['x','3','2','0','3','0'], fingers:['x','2','1','0','4','0'], frets:[0,3,2,0,3,0], barre:null,
+    intervals:'1 - 3 - 5 - 7 - 9', formula:'Cmaj7 + Major 9th', notes_played:'C E G B D',
+    tip:'That dreamy, unresolved-yet-beautiful sound of sophisticated pop and jazz.',
+    mistake:'Not letting the open strings ring — they are integral to this voicing.',
+    alt:'Cadd9 (x32030) for a simpler take.',
+    next:['Am9','Fmaj9','G13'],
+    progression:['Cmaj9','Am9','Dm9','G9'],
+    steps:['Middle on 2nd fret of string 4 (D).','Ring on 3rd fret of string 5 (A).','Pinky on 3rd fret of string 2 (B).','Strings 3 (G) and 1 (e) open. Strum from 5th string.'],
+    fingerGuide:[{string:'5th (A)',fret:3,finger:'Ring (3)'},{string:'4th (D)',fret:2,finger:'Middle (2)'},{string:'2nd (B)',fret:3,finger:'Pinky (4)'}] },
+
+  { id:'G9',      name:'G9',      full:'G Dominant 9th',        cat:['jazz','blues'],       difficulty:3, notes:['3','2','0','2','0','1'], fingers:['3','2','0','2','0','1'], frets:[3,2,0,2,0,1], barre:null,
+    intervals:'1 - 3 - 5 - b7 - 9', formula:'G7 + Major 9th', notes_played:'G B D F A',
+    tip:'Funky and bluesy — extremely common in soul, R&B, and jazz.',
+    mistake:'Inadvertently muting the open strings 3 and 2.',
+    alt:'G13 for a more complex extended voicing.',
+    next:['Cmaj9','Cm9','F9'],
+    progression:['G9','C9','F9','Bb9'],
+    steps:['Ring on 3rd fret of string 6 (E).','Middle on 2nd fret of string 5 (A).','Index on 1st fret of string 1 (e).','Middle on 2nd fret of string 3 (G) - note stretch.','Strings 4 and 2 are open.'],
+    fingerGuide:[{string:'6th (E)',fret:3,finger:'Ring (3)'},{string:'5th (A)',fret:2,finger:'Middle (2)'},{string:'3rd (G)',fret:2,finger:'Pinky (4)'},{string:'1st (e)',fret:1,finger:'Index (1)'}] },
+
+  // BLUES
+  { id:'E9',      name:'E9',      full:'E Dominant 9th',        cat:['blues','jazz'],       difficulty:3, notes:['0','2','2','1','3','0'], fingers:['0','2','3','1','4','0'], frets:[0,2,2,1,3,0], barre:null,
+    intervals:'1 - 3 - 5 - b7 - 9', formula:'E7 + Major 9th', notes_played:'E G# B D F#',
+    tip:'THE Hendrix chord. Jimi Hendrix built an entire vocabulary around this voicing.',
+    mistake:'Ring finger accidentally muting the open 1st string.',
+    alt:'E7#9 (the Hendrix chord) for even more psychedelic edge.',
+    next:['A9','B9','D9'],
+    progression:['E9','A9','B9','E9'],
+    steps:['Middle on 2nd fret of string 5 (A).','Ring on 2nd fret of string 4 (D).','Index on 1st fret of string 3 (G).','Pinky on 3rd fret of string 2 (B).','Strings 6 and 1 open.'],
+    fingerGuide:[{string:'5th (A)',fret:2,finger:'Middle (2)'},{string:'4th (D)',fret:2,finger:'Ring (3)'},{string:'3rd (G)',fret:1,finger:'Index (1)'},{string:'2nd (B)',fret:3,finger:'Pinky (4)'}] },
+
+  // FINGERSTYLE
+  { id:'Cadd9',   name:'Cadd9',   full:'C Add 9th',             cat:['fingerstyle','major'],difficulty:2, notes:['x','3','2','0','3','0'], fingers:['x','3','2','0','4','0'], frets:[0,3,2,0,3,0], barre:null,
+    intervals:'1 - 3 - 5 - 9', formula:'C major + added 9th', notes_played:'C E G D',
+    tip:'One of the most commonly used "color" chords. Open strings create a lush, wide sound.',
+    mistake:'Pinky position on 2nd string — keep the other fingers clean to avoid muting.',
+    alt:'Csus2 (x32030) for an even more open sound.',
+    next:['G','Em7','Am7','Dsus2'],
+    progression:['Cadd9','G','Em7','Dsus2'],
+    steps:['Ring on 3rd fret of string 5 (A).','Middle on 2nd fret of string 4 (D).','Pinky on 3rd fret of string 2 (B).','Strings 3 (G) and 1 (e) are open.'],
+    fingerGuide:[{string:'5th (A)',fret:3,finger:'Ring (3)'},{string:'4th (D)',fret:2,finger:'Middle (2)'},{string:'2nd (B)',fret:3,finger:'Pinky (4)'}] },
+
+  { id:'G#m',     name:'G#m',     full:'G# Minor',              cat:['minor','barre'],      difficulty:4, notes:['4','6','6','4','4','4'], fingers:['1','3','4','1','1','1'], frets:[4,6,6,4,4,4], barre:{fret:4,strings:6},
+    intervals:'1 - b3 - 5', formula:'Root + Minor 3rd + Perfect 5th', notes_played:'G# B D#',
+    tip:'Em shape at fret 4. Commonly used in songs in the key of C# or Ab.',
+    mistake:'Index barre not pressing strings 1 and 6 cleanly at fret 4.',
+    alt:'G#m7 for a softer approach.',
+    next:['C#m','E','B','F#m'],
+    progression:['G#m','E','B','C#m'],
+    steps:['Barre all 6 strings at fret 4 with index.','Ring on 6th fret of string 5 (A).','Pinky on 6th fret of string 4 (D).'],
+    fingerGuide:[{string:'All strings',fret:4,finger:'Index barre (1)'},{string:'5th (A)',fret:6,finger:'Ring (3)'},{string:'4th (D)',fret:6,finger:'Pinky (4)'}] },
+];
+
+/* ─────────────────────────────────────────────
+   POPULAR + STARTER PACKS
+───────────────────────────────────────────── */
+const POPULAR_IDS  = ['C','G','Am','Em','D','F','Bm','A','E','Dm','G7','Fmaj7'];
+const STARTER_IDS  = ['C','G','D','Am','Em','E','A','Dm'];
+const DAILY_POOL   = ['Fmaj7','Bm7','Cadd9','E9','G9','Cmaj9','Am7','Dm7','B7','G#m','C#m','Asus4'];
+
+/* ─────────────────────────────────────────────
+   STATE
+───────────────────────────────────────────── */
+let favorites     = JSON.parse(localStorage.getItem('ag_fav')  || '[]');
+let recentlyViewed= JSON.parse(localStorage.getItem('ag_rec')  || '[]');
+let currentCategory = 'all';
+let currentSearch   = '';
+
+/* ─────────────────────────────────────────────
+   HELPERS
+───────────────────────────────────────────── */
+function scrollTo(sel) {
+  const el = document.querySelector(sel);
+  if(el) el.scrollIntoView({behavior:'smooth'});
+}
+
+function saveFavorites() {
+  localStorage.setItem('ag_fav', JSON.stringify(favorites));
+}
+function saveRecent() {
+  localStorage.setItem('ag_rec', JSON.stringify(recentlyViewed));
+}
+
+function addRecent(id) {
+  recentlyViewed = recentlyViewed.filter(r => r !== id);
+  recentlyViewed.unshift(id);
+  if(recentlyViewed.length > 8) recentlyViewed = recentlyViewed.slice(0,8);
+  saveRecent();
+  renderRecent();
+}
+
+function diffDots(n) {
+  let h = '';
+  for(let i=1;i<=5;i++) h+=`<div class="diff-dot${i<=n?' filled':''}"></div>`;
+  return h;
+}
+
+function diffLabel(n) {
+  return ['','Beginner','Easy','Intermediate','Hard','Advanced'][n] || '';
+}
+
+/* ─────────────────────────────────────────────
+   CHORD CARD HTML
+───────────────────────────────────────────── */
+function chordCardHTML(chord, size='normal') {
+  const isFav = favorites.includes(chord.id);
+  return `
+  <div class="chord-card" onclick="openChord('${chord.id}')">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+      <div>
+        <div class="chord-card-name">${chord.name}</div>
+        <div class="chord-card-full">${chord.full}</div>
+      </div>
+      <button class="btn-fav${isFav?' active':''}" onclick="toggleFav(event,'${chord.id}')" title="Save chord">♡</button>
+    </div>
+    <div class="chord-card-diff">${diffDots(chord.difficulty)}</div>
+    <div class="chord-card-category">${chord.cat[0]}</div>
+  </div>`;
+}
+
+/* ─────────────────────────────────────────────
+   CHORD DIAGRAM SVG
+───────────────────────────────────────────── */
+function buildChordDiagram(chord) {
+  const W = 220, H = 270;
+  const STRINGS = 6;
+  const FRETS   = 5;
+  const marginL = 40, marginT = 50, marginR = 20, marginB = 30;
+  const gridW = W - marginL - marginR;
+  const gridH = H - marginT - marginB;
+  const strSpacing = gridW / (STRINGS - 1);
+  const fretSpacing = gridH / FRETS;
+
+  let svg = `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">`;
+  svg += `<rect width="${W}" height="${H}" fill="#1a0d05" rx="4"/>`;
+
+  // Fret position display
+  const minFret = chord.frets.filter(f=>f>0).length ? Math.min(...chord.frets.filter(f=>f>0)) : 0;
+  const displayFret = (minFret > 2) ? minFret : 0;
+  const normFrets = chord.frets.map(f => f === 0 ? 0 : (displayFret > 0 ? f - displayFret + 1 : f));
+
+  // Fret number label
+  if(displayFret > 0) {
+    svg += `<text x="${marginL-5}" y="${marginT+fretSpacing*0.6}" fill="#C8860A" font-family="'Old Standard TT',serif" font-size="11" text-anchor="end">${displayFret}fr</text>`;
+  }
+
+  // Nut (only if fret 0)
+  if(displayFret === 0) {
+    svg += `<rect x="${marginL}" y="${marginT-6}" width="${gridW}" height="6" fill="#C8860A" rx="1"/>`;
+  }
+
+  // Fret lines
+  for(let f=0;f<=FRETS;f++) {
+    const y = marginT + f * fretSpacing;
+    svg += `<line x1="${marginL}" y1="${y}" x2="${marginL+gridW}" y2="${y}" stroke="rgba(200,134,10,0.3)" stroke-width="${f===0?1.5:0.7}"/>`;
+  }
+
+  // String lines
+  for(let s=0;s<STRINGS;s++) {
+    const x = marginL + s * strSpacing;
+    svg += `<line x1="${x}" y1="${marginT}" x2="${x}" y2="${marginT+gridH}" stroke="rgba(242,234,216,0.25)" stroke-width="${s===0||s===5?1.2:0.6}"/>`;
+  }
+
+  // Barre
+  if(chord.barre) {
+    const barreNormFret = displayFret > 0 ? chord.barre.fret - displayFret + 1 : chord.barre.fret;
+    if(barreNormFret >= 1 && barreNormFret <= FRETS) {
+      const y = marginT + (barreNormFret - 0.5) * fretSpacing;
+      const startStr = STRINGS - chord.barre.strings;
+      const x1 = marginL + startStr * strSpacing;
+      const x2 = marginL + (STRINGS-1) * strSpacing;
+      svg += `<rect x="${x1}" y="${y-6}" width="${x2-x1}" height="12" fill="#8B5E0A" rx="6" opacity="0.9"/>`;
+    }
+  }
+
+  // String labels (EADGBE)
+  const strNames = ['E','A','D','G','B','e'];
+  for(let s=0;s<STRINGS;s++) {
+    const x = marginL + s * strSpacing;
+    svg += `<text x="${x}" y="${marginT-14}" fill="rgba(200,134,10,0.6)" font-family="'Old Standard TT',serif" font-size="9" text-anchor="middle">${strNames[s]}</text>`;
+  }
+
+  // Finger dots + open/mute markers
+  for(let s=0;s<STRINGS;s++) {
+    const rawFret = chord.frets[s];
+    const notePlayed = chord.notes[s];
+    const x = marginL + s * strSpacing;
+    if(notePlayed === 'x') {
+      svg += `<text x="${x}" y="${marginT-3}" fill="rgba(242,234,216,0.4)" font-family="serif" font-size="12" text-anchor="middle">✕</text>`;
+    } else if(rawFret === 0) {
+      svg += `<circle cx="${x}" cy="${marginT-3}" r="4" fill="none" stroke="rgba(242,234,216,0.5)" stroke-width="1"/>`;
+    } else {
+      const nf = normFrets[s];
+      if(nf >= 1 && nf <= FRETS) {
+        const y = marginT + (nf - 0.5) * fretSpacing;
+        svg += `<circle cx="${x}" cy="${y}" r="8" fill="#C8860A" opacity="0.9"/>`;
+        // Finger number
+        const fNum = chord.fingers[s];
+        if(fNum && fNum !== '0' && fNum !== 'x') {
+          svg += `<text x="${x}" y="${y+4}" fill="#fff" font-family="'Old Standard TT',serif" font-size="9" font-weight="bold" text-anchor="middle">${fNum}</text>`;
+        }
+      }
+    }
+  }
+
+  svg += '</svg>';
+  return svg;
+}
+
+/* ─────────────────────────────────────────────
+   FRETBOARD VISUALIZATION (interactive neck)
+───────────────────────────────────────────── */
+function buildFretboard(chord) {
+  const STRINGS=6, FRETS=12;
+  const strNames=['E','A','D','G','B','e'];
+  const W=580, H=160;
+  const strSpacing=(H-30)/(STRINGS-1);
+  const fretSpacing=(W-60)/FRETS;
+  const oX=40, oY=15;
+  const minFret=chord.frets.filter(f=>f>0).length?Math.min(...chord.frets.filter(f=>f>0)):0;
+  const maxFret=Math.max(...chord.frets.filter(f=>f>0))||5;
+  const viewStart=Math.max(0,minFret-1);
+
+  let svg=`<svg width="100%" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" style="max-width:580px;">`;
+  svg+=`<rect width="${W}" height="${H}" fill="url(#woodGrad)" rx="6"/>`;
+  svg+=`<defs>
+    <linearGradient id="woodGrad" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#3d1f0a"/>
+      <stop offset="100%" stop-color="#2a1408"/>
+    </linearGradient>
+  </defs>`;
+
+  // Fret lines
+  for(let f=0;f<=FRETS;f++) {
+    const x=oX+f*fretSpacing;
+    svg+=`<line x1="${x}" y1="${oY}" x2="${x}" y2="${oY+strSpacing*(STRINGS-1)}" stroke="rgba(200,134,10,${f===0?0.8:0.2})" stroke-width="${f===0?3:0.8}"/>`;
+    // Fret number
+    if(f>0) svg+=`<text x="${x-fretSpacing/2}" y="${oY+strSpacing*(STRINGS-1)+14}" fill="rgba(200,134,10,0.4)" font-family="'Old Standard TT',serif" font-size="8" text-anchor="middle">${f}</text>`;
+  }
+
+  // Position markers (frets 3,5,7,9,12)
+  [3,5,7,9].forEach(f=>{
+    const x=oX+f*fretSpacing-fretSpacing/2;
+    const y=oY+strSpacing*2.5;
+    svg+=`<circle cx="${x}" cy="${y}" r="5" fill="rgba(200,134,10,0.15)"/>`;
+  });
+  // Double dot at 12
+  const x12=oX+12*fretSpacing-fretSpacing/2;
+  svg+=`<circle cx="${x12}" cy="${oY+strSpacing*1.5}" r="4" fill="rgba(200,134,10,0.15)"/>`;
+  svg+=`<circle cx="${x12}" cy="${oY+strSpacing*3.5}" r="4" fill="rgba(200,134,10,0.15)"/>`;
+
+  // String lines
+  for(let s=0;s<STRINGS;s++) {
+    const y=oY+s*strSpacing;
+    const thick=0.5+s*0.4;
+    svg+=`<line x1="${oX}" y1="${y}" x2="${oX+FRETS*fretSpacing}" y2="${y}" stroke="rgba(242,234,216,${0.15+s*0.04})" stroke-width="${thick}"/>`;
+    svg+=`<text x="${oX-8}" y="${y+4}" fill="rgba(200,134,10,0.6)" font-family="'Old Standard TT',serif" font-size="9" text-anchor="end">${strNames[s]}</text>`;
+  }
+
+  // Chord dots on fretboard
+  for(let s=0;s<STRINGS;s++){
+    const f=chord.frets[s];
+    const n=chord.notes[s];
+    const y=oY+s*strSpacing;
+    if(n==='x') continue;
+    if(f===0){
+      // Open string indicator
+      svg+=`<circle cx="${oX-20}" cy="${y}" r="5" fill="none" stroke="rgba(200,134,10,0.7)" stroke-width="1.5"/>`;
+    } else if(f>=1&&f<=FRETS){
+      const x=oX+f*fretSpacing-fretSpacing/2;
+      svg+=`<circle cx="${x}" cy="${y}" r="8" fill="#C8860A" opacity="0.85"/>`;
+      const fn=chord.fingers[s];
+      if(fn&&fn!=='0'&&fn!=='x'){
+        svg+=`<text x="${x}" y="${y+4}" fill="#fff" font-family="'Old Standard TT',serif" font-size="8" font-weight="bold" text-anchor="middle">${fn}</text>`;
+      }
+    }
+  }
+
+  svg+=`</svg>`;
+  return svg;
+}
+
+/* ─────────────────────────────────────────────
+   SOUND ENGINE (Web Audio API)
+───────────────────────────────────────────── */
+let audioCtx = null;
+function initAudio() {
+  if(!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+}
+
+function playString(freq, startTime, duration, gainVal) {
+  initAudio();
+  const bufferSize = audioCtx.sampleRate * duration;
+  const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+  const data = buffer.getChannelData(0);
+  // Karplus-Strong-inspired pluck synthesis
+  const period = Math.round(audioCtx.sampleRate / freq);
+  for(let i=0; i<period; i++) data[i] = (Math.random()*2-1);
+  for(let i=period; i<bufferSize; i++) {
+    data[i] = 0.996 * (data[i-period] + data[i-period+1]) * 0.5;
+    // Add slight brightness
+    data[i] += (Math.random()*0.005-0.0025) * Math.exp(-i/(audioCtx.sampleRate*0.3));
+  }
+  const source = audioCtx.createBufferSource();
+  source.buffer = buffer;
+  const gainNode = audioCtx.createGain();
+  gainNode.gain.setValueAtTime(gainVal, startTime);
+  gainNode.gain.exponentialRampToValueAtTime(0.001, startTime + duration);
+  // Slight warmth filter
+  const filter = audioCtx.createBiquadFilter();
+  filter.type = 'lowpass';
+  filter.frequency.value = 3500;
+  source.connect(filter);
+  filter.connect(gainNode);
+  gainNode.connect(audioCtx.destination);
+  source.start(startTime);
+}
+
+// Standard tuning frequencies (fret 0 = open string)
+const OPEN_FREQS = [82.41, 110.00, 146.83, 196.00, 246.94, 329.63]; // E2 A2 D3 G3 B3 E4
+
+function playChord(chord) {
+  initAudio();
+  const now = audioCtx.currentTime;
+  const strumDelay = 0.04;
+  let playedCount = 0;
+  for(let s=0;s<6;s++){
+    if(chord.notes[s]==='x') continue;
+    const fret = chord.frets[s];
+    const freq = OPEN_FREQS[s] * Math.pow(2, fret/12);
+    const t = now + playedCount * strumDelay;
+    playString(freq, t, 3.5, 0.45);
+    playedCount++;
+  }
+}
+
+/* ─────────────────────────────────────────────
+   OPEN CHORD MODAL
+───────────────────────────────────────────── */
+function openChord(id) {
+  const chord = CHORDS.find(c=>c.id===id);
+  if(!chord) return;
+  addRecent(id);
+
+  const isFav = favorites.includes(id);
+  const diag  = buildChordDiagram(chord);
+  const fboard= buildFretboard(chord);
+
+  const fingerRows = chord.fingerGuide.map(r=>`
+    <tr>
+      <td>${r.string}</td>
+      <td>${r.fret===0?'Open':`Fret ${r.fret}`}</td>
+      <td><span class="finger-num">${r.finger[0]}</span> ${r.finger}</td>
+    </tr>`).join('');
+
+  const progChips = chord.progression.map(n=>`<span class="prog-chip" onclick="openChord('${n}')">${n}</span>`).join('');
+  const nextChips = chord.next.map(n=>`<span class="prog-chip" onclick="openChord('${n}')">${n}</span>`).join('');
+
+  const stepsHTML = chord.steps.filter(s=>s.length>15).map((s,i)=>`
+    <div style="display:flex;gap:0.8rem;margin-bottom:0.7rem;">
+      <div style="flex-shrink:0;width:22px;height:22px;border:1px solid rgba(200,134,10,0.4);border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'Old Standard TT',serif;font-size:0.65rem;color:var(--amber);margin-top:2px;">${i+1}</div>
+      <p style="font-family:'Crimson Text',serif;font-size:1rem;color:rgba(242,234,216,0.75);line-height:1.5;">${s}</p>
+    </div>`).join('');
+
+  document.getElementById('modal-content').innerHTML = `
+    <div style="padding:2rem 2rem 0;">
+      <!-- Header -->
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:1rem;">
+        <div>
+          <div class="section-sub" style="margin-bottom:0.3rem;">${chord.cat.join(' · ')}</div>
+          <h2 style="font-family:'Playfair Display',serif;font-size:2.8rem;font-weight:700;color:var(--cream);line-height:1;">${chord.full}</h2>
+          <div style="margin-top:0.3rem;font-family:'Cormorant Garamond',serif;font-size:1rem;color:var(--amber);font-style:italic;">${chord.notes_played} &nbsp;·&nbsp; ${chord.intervals}</div>
+        </div>
+        <div style="display:flex;gap:0.6rem;align-items:center;padding-top:0.5rem;">
+          <button id="modal-fav-btn" class="btn-fav${isFav?' active':''}" onclick="toggleFavModal('${id}')" title="Save chord" style="width:42px;height:42px;font-size:1.2rem;">♡</button>
+          <button class="btn-sound" id="play-btn" onclick="playChordById('${id}')">
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor"><polygon points="3,2 11,7 3,12"/></svg>
+            Play Chord
+          </button>
+        </div>
+      </div>
+
+      <!-- Difficulty -->
+      <div style="display:flex;align-items:center;gap:0.8rem;margin-top:1rem;">
+        <div style="display:flex;gap:3px;">${diffDots(chord.difficulty)}</div>
+        <span style="font-family:'Old Standard TT',serif;font-size:0.65rem;letter-spacing:0.2em;text-transform:uppercase;color:rgba(242,234,216,0.4);">${diffLabel(chord.difficulty)}</span>
+      </div>
+
+      <div style="height:1px;background:linear-gradient(90deg,rgba(200,134,10,0.2),transparent);margin:1.2rem 0;"></div>
+    </div>
+
+    <!-- Tabs -->
+    <div style="padding:0 2rem;border-bottom:1px solid rgba(200,134,10,0.1);display:flex;gap:0;overflow-x:auto;">
+      <button class="modal-tab-btn active" onclick="switchTab(this,'tab-diagram')">Diagram</button>
+      <button class="modal-tab-btn"        onclick="switchTab(this,'tab-fretboard')">Fretboard</button>
+      <button class="modal-tab-btn"        onclick="switchTab(this,'tab-howto')">How To Play</button>
+      <button class="modal-tab-btn"        onclick="switchTab(this,'tab-theory')">Theory</button>
+      <button class="modal-tab-btn"        onclick="switchTab(this,'tab-next')">Next Chords</button>
+    </div>
+
+    <!-- Tab: Diagram -->
+    <div id="tab-diagram" class="tab-pane active" style="padding:1.5rem 2rem;">
+      <div style="display:grid;grid-template-columns:auto 1fr;gap:2rem;align-items:start;flex-wrap:wrap;">
+        <div style="display:flex;flex-direction:column;align-items:center;gap:1rem;">
+          ${diag}
+          <div style="font-family:'Old Standard TT',serif;font-size:0.6rem;letter-spacing:0.15em;text-transform:uppercase;color:rgba(200,134,10,0.5);">Chord Diagram</div>
+        </div>
+        <div>
+          <div class="info-card-title">Finger Positions</div>
+          <table class="finger-table">
+            <thead><tr><th>String</th><th>Fret</th><th>Finger</th></tr></thead>
+            <tbody>${fingerRows}</tbody>
+          </table>
+          <div style="margin-top:1.2rem;">
+            <div class="info-card-title" style="margin-bottom:0.5rem;">Formula</div>
+            <p style="font-family:'Crimson Text',serif;font-size:1rem;color:rgba(242,234,216,0.7);">${chord.formula}</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tab: Fretboard -->
+    <div id="tab-fretboard" class="tab-pane" style="padding:1.5rem 2rem;">
+      <div class="info-card-title" style="margin-bottom:1rem;">Interactive Fretboard View</div>
+      <div style="overflow-x:auto;">${fboard}</div>
+      <p style="margin-top:1rem;font-family:'Crimson Text',serif;font-size:0.95rem;color:rgba(242,234,216,0.5);font-style:italic;">Amber dots show where to press. Numbers indicate which finger to use.</p>
+    </div>
+
+    <!-- Tab: How To Play -->
+    <div id="tab-howto" class="tab-pane" style="padding:1.5rem 2rem;">
+      <div style="margin-bottom:1.5rem;">${stepsHTML||'<p style="color:rgba(242,234,216,0.5);font-style:italic;font-family:Crimson Text,serif;">Use the diagram tab for finger placement details.</p>'}</div>
+      <div class="info-card">
+        <div class="info-card-title">Pro Tip</div>
+        <p class="info-card-text">${chord.tip}</p>
+      </div>
+      <div class="info-card">
+        <div class="info-card-title">Common Mistake</div>
+        <p class="info-card-text">${chord.mistake}</p>
+      </div>
+      <div class="info-card">
+        <div class="info-card-title">Easier Alternative</div>
+        <p class="info-card-text">${chord.alt}</p>
+      </div>
+    </div>
+
+    <!-- Tab: Theory -->
+    <div id="tab-theory" class="tab-pane" style="padding:1.5rem 2rem;">
+      <div class="info-card">
+        <div class="info-card-title">Intervals</div>
+        <p class="info-card-text" style="font-size:1.3rem;letter-spacing:0.05em;">${chord.intervals}</p>
+      </div>
+      <div class="info-card">
+        <div class="info-card-title">Formula</div>
+        <p class="info-card-text">${chord.formula}</p>
+      </div>
+      <div class="info-card">
+        <div class="info-card-title">Notes Played</div>
+        <p class="info-card-text" style="font-size:1.3rem;letter-spacing:0.1em;">${chord.notes_played}</p>
+      </div>
+      <div class="info-card">
+        <div class="info-card-title">Common Progression</div>
+        <div style="margin-top:0.5rem;display:flex;flex-wrap:wrap;">${progChips}</div>
+      </div>
+    </div>
+
+    <!-- Tab: Next Chords -->
+    <div id="tab-next" class="tab-pane" style="padding:1.5rem 2rem;">
+      <div class="info-card-title" style="margin-bottom:1rem;">Chords That Sound Great With ${chord.name}</div>
+      <div style="display:flex;flex-wrap:wrap;">${nextChips}</div>
+      <div style="margin-top:1.5rem;">
+        <div class="info-card-title" style="margin-bottom:0.8rem;">Suggested Progression</div>
+        <div style="display:flex;flex-wrap:wrap;align-items:center;gap:0.3rem;">
+          ${chord.progression.map((n,i)=>`<span class="prog-chip" onclick="openChord('${n}')">${n}</span>${i<chord.progression.length-1?'<span style="color:rgba(200,134,10,0.4);font-size:1rem;padding:0 0.2rem;">→</span>':''}`).join('')}
+        </div>
+      </div>
+    </div>
+
+    <div style="height:2rem;"></div>
+  `;
+
+  document.getElementById('chord-modal').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeModal() {
+  document.getElementById('chord-modal').classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+function handleModalBgClick(e) {
+  if(e.target === document.getElementById('chord-modal')) closeModal();
+}
+
+function switchTab(btn, tabId) {
+  document.querySelectorAll('.modal-tab-btn').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('.tab-pane').forEach(p=>p.classList.remove('active'));
+  btn.classList.add('active');
+  const el = document.getElementById(tabId);
+  if(el) el.classList.add('active');
+}
+
+function playChordById(id) {
+  const chord = CHORDS.find(c=>c.id===id);
+  if(!chord) return;
+  const btn = document.getElementById('play-btn');
+  if(btn) { btn.classList.add('playing'); setTimeout(()=>btn.classList.remove('playing'), 2500); }
+  playChord(chord);
+}
+
+/* ─────────────────────────────────────────────
+   FAVORITES
+───────────────────────────────────────────── */
+function toggleFav(e, id) {
+  e.stopPropagation();
+  const idx = favorites.indexOf(id);
+  if(idx===-1) favorites.push(id);
+  else favorites.splice(idx,1);
+  saveFavorites();
+  // Update all fav buttons with this id
+  document.querySelectorAll(`[onclick*="toggleFav"][onclick*="'${id}'"]`).forEach(btn=>{
+    if(favorites.includes(id)) btn.classList.add('active');
+    else btn.classList.remove('active');
+  });
+  renderFavorites();
+}
+
+function toggleFavModal(id) {
+  const idx = favorites.indexOf(id);
+  if(idx===-1) favorites.push(id);
+  else favorites.splice(idx,1);
+  saveFavorites();
+  const btn = document.getElementById('modal-fav-btn');
+  if(btn) { if(favorites.includes(id)) btn.classList.add('active'); else btn.classList.remove('active'); }
+  renderFavorites();
+  renderGrid();
+}
+
+function openFavorites() {
+  document.getElementById('fav-panel').style.right = '0';
+  document.getElementById('fav-overlay').style.background = 'rgba(0,0,0,0.5)';
+  document.getElementById('fav-overlay').style.pointerEvents = 'all';
+  renderFavorites();
+}
+
+function closeFavorites() {
+  document.getElementById('fav-panel').style.right = '-360px';
+  document.getElementById('fav-overlay').style.background = 'rgba(0,0,0,0)';
+  document.getElementById('fav-overlay').style.pointerEvents = 'none';
+}
+
+function renderFavorites() {
+  const el = document.getElementById('fav-list');
+  if(!favorites.length) {
+    el.innerHTML = `<p style="font-family:'Cormorant Garamond',serif;font-style:italic;color:rgba(242,234,216,0.3);font-size:1rem;text-align:center;padding:2rem 0;">No saved chords yet.<br/>Click ♡ on any chord to save it here.</p>`;
+    return;
+  }
+  el.innerHTML = favorites.map(id=>{
+    const c = CHORDS.find(x=>x.id===id);
+    if(!c) return '';
+    return `<div onclick="openChord('${id}')" style="display:flex;align-items:center;justify-content:space-between;padding:0.8rem 0;border-bottom:1px solid rgba(200,134,10,0.08);cursor:pointer;" onmouseover="this.style.opacity='0.8'" onmouseout="this.style.opacity='1'">
+      <div>
+        <div style="font-family:'Playfair Display',serif;font-size:1.3rem;color:var(--cream);">${c.name}</div>
+        <div style="font-family:'Cormorant Garamond',serif;font-size:0.85rem;color:var(--amber);font-style:italic;">${c.full}</div>
+      </div>
+      <button onclick="event.stopPropagation();toggleFavFromPanel('${id}')" style="background:none;border:none;color:var(--amber);cursor:pointer;font-size:1.1rem;">✕</button>
+    </div>`;
+  }).join('');
+}
+
+function toggleFavFromPanel(id) {
+  favorites = favorites.filter(f=>f!==id);
+  saveFavorites();
+  renderFavorites();
+  renderGrid();
+}
+
+/* ─────────────────────────────────────────────
+   SEARCH & FILTERING
+───────────────────────────────────────────── */
+function getFilteredChords() {
+  let chords = [...CHORDS];
+  if(currentCategory !== 'all') {
+    chords = chords.filter(c=>c.cat.includes(currentCategory));
+  }
+  if(currentSearch.trim()) {
+    const q = currentSearch.toLowerCase().trim();
+    chords = chords.filter(c=>
+      c.id.toLowerCase().startsWith(q) ||
+      c.name.toLowerCase().startsWith(q) ||
+      c.full.toLowerCase().includes(q) ||
+      c.notes_played.toLowerCase().includes(q)
+    );
+  }
+  return chords;
+}
+
+function renderGrid() {
+  const chords = getFilteredChords();
+  const grid = document.getElementById('library-grid');
+  const noRes = document.getElementById('no-results');
+  if(!chords.length) {
+    grid.innerHTML = '';
+    noRes.style.display = 'block';
+    return;
+  }
+  noRes.style.display = 'none';
+  grid.innerHTML = chords.map(c=>chordCardHTML(c)).join('');
+}
+
+function filterCategory(cat, btn) {
+  currentCategory = cat;
+  document.querySelectorAll('.category-pill').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  renderGrid();
+}
+
+function handleSearch(val) {
+  currentSearch = val;
+  renderGrid();
+  renderSuggestions(val);
+}
+
+function renderSuggestions(val) {
+  const box = document.getElementById('suggestions-box');
+  if(!val.trim()) { box.classList.remove('open'); return; }
+  const q = val.toLowerCase();
+  const matches = CHORDS.filter(c=>
+    c.id.toLowerCase().startsWith(q) || c.name.toLowerCase().startsWith(q)
+  ).slice(0,8);
+  if(!matches.length) { box.classList.remove('open'); return; }
+  box.innerHTML = matches.map(c=>`
+    <div class="suggestion-item" onclick="searchChord('${c.id}')">
+      <span class="chord-name">${c.name} <span style="color:rgba(242,234,216,0.4);font-size:0.9rem;">— ${c.full}</span></span>
+      <span class="chord-type">${c.cat[0]}</span>
+    </div>`).join('');
+  box.classList.add('open');
+}
+
+function searchChord(id) {
+  document.getElementById('suggestions-box').classList.remove('open');
+  document.getElementById('hero-search').value = id;
+  openChord(id);
+  scrollTo('#chords');
+}
+
+function searchKeyDown(e) {
+  if(e.key === 'Enter') {
+    const val = e.target.value.trim();
+    const match = CHORDS.find(c=>c.id.toLowerCase()===val.toLowerCase());
+    if(match) { openChord(match.id); document.getElementById('suggestions-box').classList.remove('open'); }
+    scrollTo('#chords');
+  }
+  if(e.key === 'Escape') document.getElementById('suggestions-box').classList.remove('open');
+}
+
+document.addEventListener('click', e=>{
+  if(!e.target.closest('.search-wrap')) {
+    document.getElementById('suggestions-box').classList.remove('open');
+  }
+});
+
+/* ─────────────────────────────────────────────
+   RECENTLY VIEWED
+───────────────────────────────────────────── */
+function renderRecent() {
+  const sec = document.getElementById('recently-viewed-section');
+  const chips = document.getElementById('recent-chips');
+  if(!recentlyViewed.length) { sec.style.display = 'none'; return; }
+  sec.style.display = 'block';
+  chips.innerHTML = recentlyViewed.map(id=>{
+    const c = CHORDS.find(x=>x.id===id);
+    return c ? `<span class="recent-chip" onclick="openChord('${id}')">
+      <span style="color:var(--amber);font-size:1.1rem;">${c.name}</span>
+      <span style="font-size:0.8rem;color:rgba(242,234,216,0.35);">${c.cat[0]}</span>
+    </span>` : '';
+  }).join('');
+}
+
+/* ─────────────────────────────────────────────
+   ALPHABET QUICK JUMP
+───────────────────────────────────────────── */
+function buildAlphaJump() {
+  const roots = ['A','B','C','D','E','F','G'];
+  const jump = document.getElementById('alpha-jump');
+  jump.innerHTML = roots.map(r=>`
+    <button class="category-pill" style="font-size:0.68rem;padding:0.4rem 0.7rem;" onclick="jumpToRoot('${r}')">${r}</button>
+  `).join('');
+}
+
+function jumpToRoot(r) {
+  currentSearch = r;
+  document.getElementById('hero-search').value = r;
+  renderGrid();
+  scrollTo('#chords');
+}
+
+/* ─────────────────────────────────────────────
+   THEORY CARDS DATA
+───────────────────────────────────────────── */
+const THEORY_CARDS = [
+  { num:'01', title:'What Is a Chord?', body:'A chord is three or more notes played simultaneously. On guitar, chords are formed by pressing specific frets across multiple strings.' },
+  { num:'02', title:'Major vs Minor', body:'Major chords sound bright and happy (intervals: 1-3-5). Minor chords sound darker and more emotional (intervals: 1-b3-5). One note makes all the difference.' },
+  { num:'03', title:'The CAGED System', body:'Five moveable chord shapes (C, A, G, E, D) that cover the entire fretboard. Learning CAGED unlocks every key in every position.' },
+  { num:'04', title:'Barre Chords', body:'One finger bars across all strings, acting as a moveable nut. E and A shape barre chords let you play any major or minor chord anywhere on the neck.' },
+  { num:'05', title:'Chord Progressions', body:'I-IV-V and I-V-vi-IV are the backbone of thousands of songs. Understanding Roman numeral harmony lets you play in any key.' },
+  { num:'06', title:'7th Chords', body:'Adding the 7th interval creates tension and color. Dominant 7ths (b7) are bluesy; Major 7ths (7) are dreamy; Minor 7ths (b3+b7) are soulful.' },
+  { num:'07', title:'Open Tunings', body:'DADGAD, Open G, Open D — alternative tunings create drone notes and allow unique voicings impossible in standard tuning. Beloved by folk and slide players.' },
+  { num:'08', title:'Nashville Number System', body:'A shorthand using numbers instead of chord names. Allows musicians to transpose songs instantly without relearning the shapes.' },
+];
+
+function renderTheory() {
+  const grid = document.getElementById('theory-grid');
+  grid.innerHTML = THEORY_CARDS.map(t=>`
+    <div class="theory-card reveal">
+      <div class="theory-card-num">${t.num}</div>
+      <div class="theory-card-title">${t.title}</div>
+      <div class="theory-card-body">${t.body}</div>
+    </div>`).join('');
+}
+
+/* ─────────────────────────────────────────────
+   ROADMAP
+───────────────────────────────────────────── */
+const ROADMAP = [
+  { num:'1', title:'Open Chords (Week 1–2)', body:'Master C, G, D, Am, Em, E, A, Dm. These 8 chords unlock over 500 songs. Focus on clean tone before speed.' },
+  { num:'2', title:'Chord Transitions (Week 3–4)', body:'Practice switching between pairs: C↔G, D↔G, Am↔C, Em↔Am. Use a metronome and slow down until clean.' },
+  { num:'3', title:'Your First Songs (Month 1)', body:'Choose 2–3 simple songs you love. Apply your open chords. Playing music you enjoy accelerates learning dramatically.' },
+  { num:'4', title:'Barre Chords (Month 2–3)', body:'Tackle the F barre chord first. Then Bm. Build with the Am shape. Your index finger will strengthen over weeks.' },
+  { num:'5', title:'7th & Extended Chords (Month 3–4)', body:'Add Am7, Em7, G7, Fmaj7. These add color to your playing and are essential for jazz, blues, and soul.' },
+  { num:'6', title:'The CAGED System (Month 4–6)', body:'Learn each shape individually. Connect them up the neck. This is the single greatest leap in guitar understanding.' },
+  { num:'7', title:'Jazz & Extended Voicings (Month 6+)', body:'Explore 9ths, maj7s, sus chords. Study jazz standards. The guitar becomes an orchestra at this stage.' },
+];
+
+function renderRoadmap() {
+  document.getElementById('roadmap-steps').innerHTML = ROADMAP.map(s=>`
+    <div class="roadmap-step reveal">
+      <div class="roadmap-num">${s.num}</div>
+      <div>
+        <div class="roadmap-title">${s.title}</div>
+        <div class="roadmap-body">${s.body}</div>
+      </div>
+    </div>`).join('');
+}
+
+/* ─────────────────────────────────────────────
+   DAILY CHALLENGE
+───────────────────────────────────────────── */
+function renderDailyChallenge() {
+  const today = new Date();
+  const idx = (today.getFullYear()*1000 + today.getMonth()*31 + today.getDate()) % DAILY_POOL.length;
+  const id = DAILY_POOL[idx];
+  const chord = CHORDS.find(c=>c.id===id);
+  if(!chord) return;
+  const dayName = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'][today.getDay()];
+  document.getElementById('daily-challenge-card').innerHTML = `
+    <div style="display:grid;grid-template-columns:1fr auto;gap:2rem;align-items:start;flex-wrap:wrap;">
+      <div>
+        <div class="section-sub" style="margin-bottom:0.5rem;">${dayName}'s Challenge</div>
+        <h3 style="font-family:'Playfair Display',serif;font-size:2.2rem;font-weight:700;color:var(--cream);margin-bottom:0.3rem;">${chord.full}</h3>
+        <p style="font-family:'Cormorant Garamond',serif;font-style:italic;color:var(--amber);margin-bottom:1rem;">${chord.notes_played} · ${chord.intervals}</p>
+        <p style="font-family:'Crimson Text',serif;font-size:1rem;color:rgba(242,234,216,0.65);line-height:1.6;max-width:420px;">${chord.tip}</p>
+        <div style="margin-top:1.5rem;display:flex;gap:0.8rem;flex-wrap:wrap;">
+          <button class="btn-sound" onclick="playChordById('${chord.id}')">
+            <svg width="12" height="12" viewBox="0 0 14 14" fill="currentColor"><polygon points="3,2 11,7 3,12"/></svg>
+            Hear It
+          </button>
+          <button class="btn-sound" onclick="openChord('${chord.id}')">Study This Chord →</button>
+        </div>
+      </div>
+      <div style="opacity:0.9;">${buildChordDiagram(chord)}</div>
+    </div>
+  `;
+}
+
+/* ─────────────────────────────────────────────
+   SCROLL REVEAL
+───────────────────────────────────────────── */
+function initReveal() {
+  const obs = new IntersectionObserver(entries=>{
+    entries.forEach(e=>{ if(e.isIntersecting) e.target.classList.add('visible'); });
+  }, { threshold: 0.1 });
+  document.querySelectorAll('.reveal').forEach(el=>obs.observe(el));
+}
+
+/* ─────────────────────────────────────────────
+   NAVBAR SCROLL BEHAVIOR
+───────────────────────────────────────────── */
+window.addEventListener('scroll', ()=>{
+  const nav = document.getElementById('navbar');
+  if(window.scrollY > 60) nav.classList.add('scrolled');
+  else nav.classList.remove('scrolled');
+  // Re-observe new reveal elements (for dynamically added ones)
+  document.querySelectorAll('.reveal:not(.visible)').forEach(el=>{
+    const rect = el.getBoundingClientRect();
+    if(rect.top < window.innerHeight * 0.9) el.classList.add('visible');
+  });
+});
+
+/* ─────────────────────────────────────────────
+   INIT
+───────────────────────────────────────────── */
+document.addEventListener('DOMContentLoaded', ()=>{
+  // Popular chords
+  const popGrid = document.getElementById('popular-grid');
+  popGrid.innerHTML = POPULAR_IDS.map(id=>{
+    const c = CHORDS.find(x=>x.id===id);
+    return c ? chordCardHTML(c) : '';
+  }).join('');
+
+  // Starter pack
+  const startGrid = document.getElementById('starter-grid');
+  startGrid.innerHTML = STARTER_IDS.map(id=>{
+    const c = CHORDS.find(x=>x.id===id);
+    return c ? chordCardHTML(c) : '';
+  }).join('');
+
+  // Library grid
+  renderGrid();
+
+  // Theory
+  renderTheory();
+
+  // Roadmap
+  renderRoadmap();
+
+  // Daily challenge
+  renderDailyChallenge();
+
+  // Alphabet jump
+  buildAlphaJump();
+
+  // Recently viewed
+  renderRecent();
+
+  // Scroll reveal
+  setTimeout(initReveal, 200);
+
+  // Keyboard shortcut: Escape closes modal
+  document.addEventListener('keydown', e=>{
+    if(e.key==='Escape') { closeModal(); closeFavorites(); }
+  });
+
+  /* ── DISMISS SPLASH ── */
+  window.addEventListener('load', ()=>{
+    setTimeout(()=>{
+      const splash = document.getElementById('pwa-splash');
+      if(splash) splash.classList.add('hidden');
+    }, 600);
+  });
+});
+</script>
+</body>
+</html>
